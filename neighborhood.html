@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Al Qasimia, Sharjah — Postcards to Home</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&family=Caveat:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --cream:#F5EDD8; --parchment:#EDE0C4; --sand:#C4956A; --brown:#6B3F1E; --deep-brown:#3E200A; --red:#B5372A; --blue:#2E4F82; --olive:#4A6741; --charcoal:#2D2416; --ink:#1A110A; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--parchment); color: var(--charcoal); min-height: 100vh; overflow-x: hidden; }
+    body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index:0; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.055'/%3E%3C/svg%3E"); }
+    nav { position:relative; z-index:10; display:flex; align-items:center; justify-content:space-between; padding:1.5rem 2.5rem; }
+    .nav-logo { font-family:'Playfair Display',serif; font-size:1.1rem; font-weight:600; color:var(--deep-brown); letter-spacing:0.02em; display:flex; align-items:center; gap:0.5rem; text-decoration:none; }
+    .nav-logo .dot { width:6px; height:6px; border-radius:50%; background:var(--red); }
+    .nav-links { display:flex; align-items:center; gap:1.75rem; }
+    .nav-link { font-size:0.8rem; font-weight:500; color:var(--brown); letter-spacing:0.08em; text-transform:uppercase; text-decoration:none; opacity:0.7; transition:opacity 0.2s; }
+    .nav-link:hover { opacity:1; }
+    .nav-btn { font-size:0.78rem; font-weight:500; color:var(--cream); background:var(--brown); padding:0.45rem 1.1rem; border-radius:2px; text-decoration:none; letter-spacing:0.06em; text-transform:uppercase; transition:background 0.2s,transform 0.1s; }
+    .nav-btn:hover { background:var(--deep-brown); transform:translateY(-1px); }
+
+    /* Page header */
+    .page-header { position:relative; z-index:1; padding:2rem 2.5rem 1.5rem; max-width:1100px; margin:0 auto; }
+    .breadcrumb { display:flex; align-items:center; gap:0.5rem; margin-bottom:1.2rem; }
+    .breadcrumb a { font-size:0.7rem; color:var(--brown); opacity:0.6; text-decoration:none; letter-spacing:0.06em; text-transform:uppercase; transition:opacity 0.2s; }
+    .breadcrumb a:hover { opacity:1; }
+    .breadcrumb span { color:var(--sand); font-size:0.68rem; }
+    .page-title { font-family:'Playfair Display',serif; font-size:clamp(1.8rem,4vw,2.8rem); font-weight:700; color:var(--deep-brown); letter-spacing:-0.02em; }
+    .page-meta { display:flex; align-items:center; gap:1.5rem; margin-top:0.6rem; }
+    .page-count { font-size:0.82rem; color:var(--brown); opacity:0.75; }
+    .page-count strong { font-weight:600; color:var(--brown); opacity:1; }
+
+    /* Filter bar */
+    .filter-bar { display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:1.25rem; padding-top:1.25rem; border-top:1px solid rgba(107,63,30,0.1); }
+    .filter-chip { font-size:0.72rem; color:var(--brown); background:rgba(255,255,255,0.5); border:1px solid rgba(107,63,30,0.15); padding:0.35rem 0.75rem; border-radius:2px; cursor:pointer; transition:all 0.15s ease; user-select:none; }
+    .filter-chip:hover { background:rgba(255,255,255,0.9); border-color:rgba(107,63,30,0.3); }
+    .filter-chip.active { background:var(--brown); color:var(--cream); border-color:var(--brown); }
+    .filter-label { font-size:0.65rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--sand); display:flex; align-items:center; margin-right:0.25rem; }
+
+    /* Envelope wall */
+    .wall { position:relative; z-index:1; padding:1.5rem 2rem 5rem; max-width:1100px; margin:0 auto; }
+
+    .envelopes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1.5rem;
+    }
+
+    /* Individual envelope */
+    .envelope-wrap {
+      position: relative;
+      animation: envelopeIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+
+    .envelope {
+      position: relative;
+      background: #FAF6ED;
+      border-radius: 2px;
+      cursor: pointer;
+      text-decoration: none;
+      display: block;
+      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s ease;
+      box-shadow: 0 2px 8px rgba(62,32,10,0.1), 0 1px 2px rgba(62,32,10,0.08);
+
+      /* Airmail border */
+      border: 3px solid transparent;
+      background-clip: padding-box;
+    }
+
+    /* Airmail stripe border */
+    .envelope::before {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      border-radius: 3px;
+      background: repeating-linear-gradient(-45deg, var(--red) 0px, var(--red) 5px, var(--blue) 5px, var(--blue) 10px);
+      z-index: -1;
+    }
+
+    .envelope:hover {
+      transform: translateY(-6px) rotate(0deg);
+      box-shadow: 0 12px 32px rgba(62,32,10,0.16), 0 4px 8px rgba(62,32,10,0.1);
+    }
+
+    /* Envelope flap (triangle at top) */
+    .envelope-flap {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 70px;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .envelope-flap::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 0;
+      border-left: calc(50% + 2px) solid transparent;
+      border-right: calc(50% + 2px) solid transparent;
+      border-top: 65px solid #F0E8D8;
+      filter: drop-shadow(0 2px 2px rgba(62,32,10,0.08));
+    }
+
+    /* V-fold lines on flap */
+    .envelope-flap-lines {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .envelope-body { padding: 1rem 1rem 0.85rem; position: relative; }
+
+    /* Stamp in envelope corner */
+    .env-stamp {
+      position: absolute;
+      top: 0.6rem;
+      right: 0.75rem;
+      width: 40px;
+      height: 48px;
+      border: 1px dashed rgba(107,63,30,0.4);
+      border-radius: 1px;
+      background: #F0E2C4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      box-shadow: inset 0 0 0 2px #F0E2C4, inset 0 0 0 3px rgba(107,63,30,0.15);
+    }
+
+    /* Postmark on envelope */
+    .env-postmark {
+      position: absolute;
+      top: 0.4rem;
+      right: 2.8rem;
+      width: 42px;
+      height: 42px;
+      opacity: 0.3;
+      pointer-events: none;
+    }
+
+    .env-theme { font-size:0.55rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--sand); margin-bottom:0.4rem; margin-top:0.5rem; }
+    .env-title { font-family:'Playfair Display',serif; font-size:0.92rem; font-weight:600; color:var(--deep-brown); line-height:1.3; margin-bottom:0.45rem; }
+    .env-snippet { font-family:'Caveat',cursive; font-size:0.82rem; color:var(--brown); opacity:0; max-height:0; overflow:hidden; line-height:1.5; transition:opacity 0.25s ease, max-height 0.3s ease; }
+    .envelope:hover .env-snippet { opacity:0.8; max-height:80px; }
+    .env-footer { display:flex; justify-content:space-between; align-items:center; margin-top:0.65rem; padding-top:0.6rem; border-top:1px solid rgba(107,63,30,0.1); }
+    .env-from { font-size:0.6rem; color:var(--brown); opacity:0.55; font-style:italic; font-family:'Caveat',cursive; font-size:0.78rem; }
+    .env-date { font-size:0.55rem; color:var(--sand); letter-spacing:0.05em; }
+
+    /* Decorative tilt varies per card */
+    .envelope-wrap:nth-child(odd) .envelope { transform: rotate(-1.2deg); }
+    .envelope-wrap:nth-child(odd) .envelope:hover { transform: translateY(-6px) rotate(0deg); }
+    .envelope-wrap:nth-child(3n) .envelope { transform: rotate(0.8deg); }
+    .envelope-wrap:nth-child(3n) .envelope:hover { transform: translateY(-6px) rotate(0deg); }
+
+    /* Pin decoration */
+    .envelope-wrap::before {
+      content: '';
+      position: absolute;
+      top: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--red);
+      box-shadow: 0 1px 3px rgba(62,32,10,0.3);
+      z-index: 10;
+      opacity: 0.7;
+    }
+
+    @keyframes envelopeIn {
+      from { opacity: 0; transform: translateY(16px) rotate(-0.5deg); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .envelope-wrap:nth-child(1)  { animation-delay: 0.05s; }
+    .envelope-wrap:nth-child(2)  { animation-delay: 0.10s; }
+    .envelope-wrap:nth-child(3)  { animation-delay: 0.15s; }
+    .envelope-wrap:nth-child(4)  { animation-delay: 0.20s; }
+    .envelope-wrap:nth-child(5)  { animation-delay: 0.25s; }
+    .envelope-wrap:nth-child(6)  { animation-delay: 0.30s; }
+    .envelope-wrap:nth-child(7)  { animation-delay: 0.35s; }
+    .envelope-wrap:nth-child(8)  { animation-delay: 0.40s; }
+    .envelope-wrap:nth-child(9)  { animation-delay: 0.45s; }
+    .envelope-wrap:nth-child(10) { animation-delay: 0.50s; }
+    .envelope-wrap:nth-child(11) { animation-delay: 0.55s; }
+    .envelope-wrap:nth-child(12) { animation-delay: 0.60s; }
+
+    /* Empty state */
+    .empty-state { text-align:center; padding:4rem 2rem; color:var(--brown); opacity:0.5; font-family:'Playfair Display',serif; font-style:italic; font-size:1rem; }
+
+    @media (max-width:640px) { nav { padding:1.25rem; } .nav-link { display:none; } .page-header { padding:1.5rem 1rem; } .wall { padding:1rem 1rem 4rem; } }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-logo"><span class="dot"></span>Postcards to Home</a>
+  <div class="nav-links">
+    <a href="explore.html" class="nav-link">Explore</a>
+    <a href="index.html" class="nav-btn">Create</a>
+  </div>
+</nav>
+
+<div class="page-header" id="page-header"><!-- filled by JS --></div>
+
+<!-- Envelope wall -->
+<div class="wall">
+  <div class="envelopes-grid" id="envelope-grid">
+
+    <div class="envelope-wrap" data-theme="Childhood">
+      <a href="postcard.html?id=1" class="envelope">
+        <div class="envelope-flap"></div>
+        <div class="envelope-body">
+          <div class="env-stamp">🌴</div>
+          <svg class="env-postmark" viewBox="0 0 42 42" fill="none">
+            <circle cx="21" cy="21" r="19" stroke="#B5372A" stroke-width="1.5"/>
+            <text x="21" y="16" text-anchor="middle" font-size="5" font-family="monospace" fill="#B5372A">SHARJAH</text>
+            <line x1="7" y1="21" x2="35" y2="21" stroke="#B5372A" stroke-width="1.5"/>
+            <line x1="7" y1="24" x2="35" y2="24" stroke="#B5372A" stroke-width="0.8"/>
+            <text x="21" y="32" text-anchor="middle" font-size="4.5" font-family="monospace" fill="#B5372A">UAE</text>
+          </svg>
+          <div class="env-theme">Childhood</div>
+          <div class="env-title">The smell of Friday morning</div>
+          <div class="env-snippet">To Baba — I still remember how you'd wake us all up early before the souq opened, the cardamom rising from the kitchen…</div>
+          <div class="env-footer">
+            <span class="env-from">From Nour</span>
+            <span class="env-date">Mar 2025</span>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <div class="envelope-wrap" data-theme="School">
+      <a href="postcard.html?id=2" class="envelope">
+        <div class="envelope-flap"></div>
+        <div class="envelope-body">
+          <div class="env-stamp">📚</div>
+          <div class="env-theme">School</div>
+          <div class="env-title">My old classroom window</div>
+          <div class="env-snippet">I used to look out at that palm tree every afternoon when the teacher wasn't looking. I wonder if it's still there.</div>
+          <div class="env-footer">
+            <span class="env-from">From Khalid</span>
+            <span class="env-date">Feb 2025</span>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <div class="envelope-wrap" data-theme="Home">
+      <a href="postcard.html?id=3" class="envelope">
+        <div class="envelope-flap"></div>
+        <div class="envelope-body">
+          <div class="env-stamp">🏠</div>
+          <div class="env-theme">Home</div>
+          <div class="env-title">The house on the corner</div>
+          <div class="env-snippet">To our old house — they tore you down to build a tower. But I remember every tile, every creak in the stairs.</div>
+          <div class="env-footer">
+            <span class="env-from">Anonymous</span>
+            <span class="env-date">Jan 2025</span>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <div class="envelope-wrap" data-theme="Longing">
+      <a href="postcard.html?id=4" class="envelope">
+        <div class="envelope-flap"></div>
+        <div class="envelope-body">
+          <div class="env-stamp">✉️</div>
+          <div class="env-theme">Longing</div>
+          <div class="env-title">Fourteen years away</div>
+          <div class="env-snippet">To Al Qasimia — I left in 2011 and I still dream about the way the evening light fell on the buildings near the market.</div>
+          <div class="env-footer">
+            <span class="env-from">From Sara M.</span>
+            <span class="env-date">Apr 2025</span>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <div class="envelope-wrap" data-theme="Family">
+      <a href="postcard.html?id=5" class="envelope">
+        <div class="envelope-flap"></div>
+        <div class="envelope-body">
+          <div class="env-stamp">🫒</div>
+          <div class="env-theme">Family</div>
+          <div class="env-title">Teta's kitchen</div>
+          <div class="env-snippet">Everything in this neighborhood smells like her cooking. Even now, years after she passed, walking here brings it all back.</div>
+          <div class="env-footer">
+            <span class="env-from">From Layla</span>
+            <span class="env-date">Mar 2025</span>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <div class="envelope-wrap" data-theme="Childhood">
+      <a href="postcard.html?id=6" class="envelope">
+        <div class="envelope-flap"></div>
+        <div class="envelope-body">
+          <div class="env-stamp">🎈</div>
+          <div class="env-theme">Childhood</div>
+          <div class="env-title">Running home before dark</div>
+          <div class="env-snippet">My mother used to call from the balcony. We'd hear her all the way from the far end of the street. We always made it just in time.</div>
+          <div class="env-footer">
+            <span class="env-from">From Hamad</span>
+            <span class="env-date">Apr 2025</span>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <div class="envelope-wrap" data-theme="Return">
+      <a href="postcard.html?id=7" class="envelope">
+        <div class="envelope-flap"></div>
+        <div class="envelope-body">
+          <div class="env-stamp">🌙</div>
+          <div class="env-theme">Return</div>
+          <div class="env-title">Coming back after a decade</div>
+          <div class="env-snippet">The streets are wider now. But the corner shop is still there — same man behind the counter, a little greyer.</div>
+          <div class="env-footer">
+            <span class="env-from">From Reem</span>
+            <span class="env-date">Jan 2025</span>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <div class="envelope-wrap" data-theme="School">
+      <a href="postcard.html?id=8" class="envelope">
+        <div class="envelope-flap"></div>
+        <div class="envelope-body">
+          <div class="env-stamp">🖊️</div>
+          <div class="env-theme">School</div>
+          <div class="env-title">The teacher who knew</div>
+          <div class="env-snippet">To Ustaz Mansour — you saw something in me before I did. I hope you know what that quiet encouragement meant to a shy kid.</div>
+          <div class="env-footer">
+            <span class="env-from">From Omar</span>
+            <span class="env-date">Feb 2025</span>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <div class="envelope-wrap" data-theme="Home">
+      <a href="postcard.html?id=9" class="envelope">
+        <div class="envelope-flap"></div>
+        <div class="envelope-body">
+          <div class="env-stamp">🪴</div>
+          <div class="env-theme">Home</div>
+          <div class="env-title">The courtyard in summer</div>
+          <div class="env-snippet">We used to sleep on the roof because the courtyard trapped the heat. Now I miss even that — the stars, the silence, the heat.</div>
+          <div class="env-footer">
+            <span class="env-from">Anonymous</span>
+            <span class="env-date">Mar 2025</span>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <div class="envelope-wrap" data-theme="Family">
+      <a href="postcard.html?id=10" class="envelope">
+        <div class="envelope-flap"></div>
+        <div class="envelope-body">
+          <div class="env-stamp">🫶</div>
+          <div class="env-theme">Family</div>
+          <div class="env-title">Eid morning, every year</div>
+          <div class="env-snippet">We'd put on our new clothes and walk to Grandma's. The whole family would be there. She always saved the best pastries for me.</div>
+          <div class="env-footer">
+            <span class="env-from">From Fatima</span>
+            <span class="env-date">Apr 2025</span>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <div class="envelope-wrap" data-theme="Longing">
+      <a href="postcard.html?id=11" class="envelope">
+        <div class="envelope-flap"></div>
+        <div class="envelope-body">
+          <div class="env-stamp">🌅</div>
+          <div class="env-theme">Longing</div>
+          <div class="env-title">Sunsets from the old building</div>
+          <div class="env-snippet">The new tower blocks the view now. But I still know where the sun sets behind the city. I can feel it even without seeing it.</div>
+          <div class="env-footer">
+            <span class="env-from">From Yusuf</span>
+            <span class="env-date">Jan 2025</span>
+          </div>
+        </div>
+      </a>
+    </div>
+
+  </div><!-- dynamic content injected below -->
+</div>
+
+<script>
+const THEMES = ['🌴 Childhood','🫶 Family','🏠 Home','🌙 Longing','🚢 Sea','📚 School','☕ Tradition','🌅 Return','🤝 Friendship','🍽️ Food','❤️ Love','☁️ Everyday Life'];
+
+const EMIRATE_SLUGS = {
+  'abu-dhabi':'Abu Dhabi','dubai':'Dubai','sharjah':'Sharjah',
+  'ajman':'Ajman','umm-al-quwain':'Umm Al Quwain',
+  'ras-al-khaimah':'Ras Al Khaimah','fujairah':'Fujairah'
+};
+
+// Sample postcards per neighborhood (keyed by lowercase name)
+const SAMPLES = {
+  'default': [
+    { from:'Nour', theme:'🌴 Childhood', title:'The smell of Friday morning', snippet:'To Baba — I still remember how you\'d wake us all up early before the souq opened, the cardamom rising from the kitchen…', date:'Mar 2025' },
+    { from:'Khalid', theme:'📚 School', title:'My old classroom window', snippet:'I used to look out at that palm tree every afternoon when the teacher wasn\'t looking. I wonder if it\'s still there.', date:'Feb 2025' },
+    { from:'Anonymous', theme:'🏠 Home', title:'The house on the corner', snippet:'To our old house — they tore you down to build a tower. But I remember every tile, every creak in the stairs.', date:'Jan 2025' },
+    { from:'Sara M.', theme:'🌙 Longing', title:'Fourteen years away', snippet:'I left in 2011 and I still dream about the way the evening light fell on the buildings near the market.', date:'Apr 2025' },
+    { from:'Layla', theme:'🫶 Family', title:'Grandma\'s kitchen', snippet:'Everything here smells like her cooking. Even now, years after she passed, walking here brings it all back.', date:'Mar 2025' },
+    { from:'Hamad', theme:'🌴 Childhood', title:'Running home before dark', snippet:'My mother used to call from the balcony. We\'d hear her all the way from the far end of the street.', date:'Apr 2025' },
+    { from:'Reem', theme:'🌅 Return', title:'Coming back after a decade', snippet:'The streets are wider now. But the corner shop is still there — same man behind the counter, a little greyer.', date:'Jan 2025' },
+    { from:'Omar', theme:'📚 School', title:'The teacher who knew', snippet:'To Ustaz Mansour — you saw something in me before I did. I hope you know what that quiet encouragement meant.', date:'Feb 2025' },
+  ]
+};
+
+const params = new URLSearchParams(location.search);
+const nbRaw = params.get('nb') || '';
+const emirateSlug = params.get('emirate') || '';
+const emirateName = EMIRATE_SLUGS[emirateSlug] || emirateSlug.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+
+// Decode neighborhood name from slug
+const nbName = nbRaw.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+
+document.title = (nbName || 'Neighborhood') + (emirateName ? ', ' + emirateName : '') + ' — Postcards to Home';
+
+// Build header
+document.getElementById('page-header').innerHTML = `
+  <div class="breadcrumb">
+    <a href="map.html">UAE Map</a>
+    <span>›</span>
+    <a href="emirate.html?e=${emirateSlug}">${emirateName}</a>
+    <span>›</span>
+    <a href="#">${nbName}</a>
+  </div>
+  <h1 class="page-title">${nbName}<span style="color:var(--sand);font-weight:400;">${emirateName ? ', '+emirateName : ''}</span></h1>
+  <div class="page-meta" id="page-meta"></div>
+  <div class="filter-bar">
+    <span class="filter-label">Theme:</span>
+    <span class="filter-chip active" onclick="filterTheme(this,'all')">All</span>
+    ${THEMES.map(t => `<span class="filter-chip" onclick="filterTheme(this,${JSON.stringify(t)})">${t}</span>`).join('')}
+  </div>
+`;
+
+// Load data: user cards for this neighborhood + samples
+function loadWall() { try { return JSON.parse(localStorage.getItem('ptoh_wall')||'[]'); } catch(e){ return []; } }
+const userCards = loadWall().filter(c =>
+  (!nbName || (c.neighborhood && c.neighborhood.toLowerCase() === nbName.toLowerCase())) &&
+  (!emirateName || (c.emirate && c.emirate === emirateName))
+);
+
+const sampleData = SAMPLES['default'];
+let activeTheme = 'all';
+
+function renderEnvelopes(themeFilter) {
+  const grid = document.getElementById('envelope-grid');
+  const allItems = [...userCards.map(c => ({
+    from: c.from||'Anonymous', theme: c.theme||'', title: c.to||'A memory',
+    snippet: c.message||'', date: c.date||'', stampSrc: c.stampSrc||'', isUser: true, cardId: c.id
+  })), ...sampleData];
+
+  const filtered = themeFilter === 'all' ? allItems : allItems.filter(c => c.theme === themeFilter);
+  document.getElementById('page-meta').innerHTML = `<span class="page-count"><strong>${filtered.length}</strong> postcards from this neighborhood</span>`;
+
+  if (!filtered.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:3rem;font-family:'Playfair Display',serif;font-style:italic;color:var(--brown);opacity:0.45;">No postcards here yet. <a href="index.html" style="color:var(--red);text-decoration:none;">Write the first one →</a></div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map((c,i) => `
+    <div class="envelope-wrap" data-theme="${c.theme}" style="animation-delay:${i*0.05}s">
+      <div class="envelope" onclick="openCard(${i}, ${JSON.stringify(filtered).replace(/"/g,'&quot;')})">
+        <div class="envelope-flap"></div>
+        <div class="envelope-body">
+          <div class="env-stamp" style="${c.stampSrc ? 'padding:0;overflow:hidden;' : ''}">${c.stampSrc ? `<img src="${c.stampSrc}" style="width:100%;height:100%;object-fit:cover;">` : (c.theme ? c.theme.split(' ')[0] : '✉️')}</div>
+          <svg class="env-postmark" viewBox="0 0 42 42" fill="none">
+            <circle cx="21" cy="21" r="19" stroke="#B5372A" stroke-width="1.5"/>
+            <text x="21" y="16" text-anchor="middle" font-size="4" font-family="monospace" fill="#B5372A">${emirateName.toUpperCase().slice(0,8)}</text>
+            <line x1="7" y1="21" x2="35" y2="21" stroke="#B5372A" stroke-width="1.5"/>
+            <text x="21" y="32" text-anchor="middle" font-size="4.5" font-family="monospace" fill="#B5372A">UAE</text>
+          </svg>
+          <div class="env-theme">${c.theme}</div>
+          <div class="env-title">${c.title}</div>
+          <div class="env-snippet">${c.snippet}</div>
+          <div class="env-footer">
+            <span class="env-from">From ${c.from}</span>
+            <span class="env-date">${c.date}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  // Re-bind onclick with actual data (avoid JSON issues)
+  const wraps = grid.querySelectorAll('.envelope');
+  wraps.forEach((el, i) => {
+    el.onclick = () => openCardObj(filtered[i]);
+  });
+}
+
+function filterTheme(el, theme) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  activeTheme = theme;
+  renderEnvelopes(theme);
+}
+
+// Modal
+function openCardObj(c) {
+  const modal = document.getElementById('nb-modal');
+  if (!modal) return;
+  document.getElementById('nb-modal-content').innerHTML = `
+    <div style="background:#FAF6ED;border-radius:3px;padding:1.5rem;box-shadow:0 4px 24px rgba(62,32,10,0.2);">
+      <div style="font-size:0.55rem;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;color:#C4956A;margin-bottom:0.3rem;">${c.theme||''}</div>
+      <div style="font-family:'Playfair Display',serif;font-size:1.2rem;font-weight:600;color:#3E200A;margin-bottom:0.75rem;">${c.title||c.to||''}</div>
+      ${c.stampSrc ? `<img src="${c.stampSrc}" style="width:52px;height:64px;object-fit:cover;float:right;border:1.5px solid rgba(107,63,30,0.3);border-radius:2px;margin-left:1rem;">` : ''}
+      <div style="font-family:'Caveat',cursive;font-size:1.1rem;color:#1A110A;line-height:1.8;margin-bottom:1rem;white-space:pre-wrap;">${c.snippet||c.message||''}</div>
+      <div style="clear:both;border-top:1px dashed rgba(107,63,30,0.18);padding-top:0.65rem;display:flex;justify-content:space-between;font-size:0.68rem;color:#6B3F1E;opacity:0.7;">
+        <span>From ${c.from||'Anonymous'}</span>
+        <span>${nbName}${emirateName ? ', '+emirateName : ''} · ${c.date||''}</span>
+      </div>
+    </div>
+  `;
+  modal.classList.add('open');
+}
+
+renderEnvelopes('all');
+</script>
+
+<!-- Card modal -->
+<div id="nb-modal" style="display:none;position:fixed;inset:0;background:rgba(30,12,0,0.65);z-index:1000;align-items:center;justify-content:center;padding:1rem;" onclick="if(event.target===this)this.classList.remove('open')" class="">
+  <div style="max-width:520px;width:100%;position:relative;">
+    <button onclick="document.getElementById('nb-modal').classList.remove('open')" style="position:absolute;top:-14px;right:-14px;width:32px;height:32px;border-radius:50%;background:#3E200A;color:#F5EDD8;border:none;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;z-index:10;">✕</button>
+    <div id="nb-modal-content"></div>
+  </div>
+</div>
+<style>
+  #nb-modal.open { display:flex; }
+</style>
+
+</body>
+</html>

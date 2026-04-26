@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The smell of Friday morning — Postcards to Home</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&family=Caveat:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root { --cream:#F5EDD8; --parchment:#EDE0C4; --sand:#C4956A; --brown:#6B3F1E; --deep-brown:#3E200A; --red:#B5372A; --blue:#2E4F82; --olive:#4A6741; --charcoal:#2D2416; --ink:#1A110A; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--parchment); color: var(--charcoal); min-height: 100vh; overflow-x: hidden; }
+    body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index:0; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.055'/%3E%3C/svg%3E"); }
+    nav { position:relative; z-index:10; display:flex; align-items:center; justify-content:space-between; padding:1.5rem 2.5rem; }
+    .nav-logo { font-family:'Playfair Display',serif; font-size:1.1rem; font-weight:600; color:var(--deep-brown); letter-spacing:0.02em; display:flex; align-items:center; gap:0.5rem; text-decoration:none; }
+    .nav-logo .dot { width:6px; height:6px; border-radius:50%; background:var(--red); }
+    .nav-links { display:flex; align-items:center; gap:1.75rem; }
+    .nav-link { font-size:0.8rem; font-weight:500; color:var(--brown); letter-spacing:0.08em; text-transform:uppercase; text-decoration:none; opacity:0.7; transition:opacity 0.2s; }
+    .nav-link:hover { opacity:1; }
+    .nav-btn { font-size:0.78rem; font-weight:500; color:var(--cream); background:var(--brown); padding:0.45rem 1.1rem; border-radius:2px; text-decoration:none; letter-spacing:0.06em; text-transform:uppercase; transition:background 0.2s,transform 0.1s; }
+    .nav-btn:hover { background:var(--deep-brown); transform:translateY(-1px); }
+
+    .page-wrap { position:relative; z-index:1; max-width:860px; margin:0 auto; padding:1.5rem 2rem 5rem; }
+    .breadcrumb { display:flex; align-items:center; gap:0.5rem; margin-bottom:2rem; }
+    .breadcrumb a { font-size:0.7rem; color:var(--brown); opacity:0.55; text-decoration:none; letter-spacing:0.06em; text-transform:uppercase; transition:opacity 0.2s; }
+    .breadcrumb a:hover { opacity:1; }
+    .breadcrumb span { color:var(--sand); font-size:0.68rem; }
+
+    /* Full postcard */
+    .postcard-stage {
+      position: relative;
+      animation: cardIn 0.8s cubic-bezier(0.34,1.56,0.64,1) 0.1s both;
+    }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(20px) rotate(-0.5deg); }
+      to   { opacity: 1; transform: translateY(0) rotate(0deg); }
+    }
+
+    .postcard-airmail {
+      border-radius: 3px;
+      padding: 5px;
+      background: repeating-linear-gradient(-45deg, var(--red) 0px, var(--red) 8px, var(--blue) 8px, var(--blue) 16px);
+      box-shadow: 0 4px 20px rgba(62,32,10,0.14), 0 16px 48px rgba(62,32,10,0.1), 0 1px 0 rgba(255,255,255,0.3) inset;
+    }
+
+    .postcard { display:flex; background:#FAF6ED; border-radius:1px; overflow:hidden; min-height:400px; }
+
+    /* Scene side */
+    .pc-scene {
+      width: 38%; min-width: 200px; position: relative; overflow: hidden;
+      background: linear-gradient(155deg, #7A4825 0%, #A0632E 45%, #C4956A 100%);
+      display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+      padding: 1.5rem;
+    }
+    .pc-scene::before { content:''; position:absolute; inset:0; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cg fill='none' stroke='rgba(255,255,255,0.1)' stroke-width='0.8'%3E%3Cpolygon points='30,6 35.2,24.8 54,30 35.2,35.2 30,54 24.8,35.2 6,30 24.8,24.8'/%3E%3C/g%3E%3C/svg%3E"); }
+    .pc-scene::after { content:''; position:absolute; inset:0; background:linear-gradient(to top, rgba(62,32,10,0.55) 0%, transparent 55%); }
+    .scene-caption { position:relative; z-index:2; text-align:center; }
+    .scene-location { font-family:'Playfair Display',serif; font-size:0.95rem; font-style:italic; color:rgba(255,255,255,0.9); margin-bottom:0.2rem; }
+    .scene-emirate { font-size:0.6rem; letter-spacing:0.16em; text-transform:uppercase; color:rgba(255,255,255,0.5); }
+
+    /* Writing side */
+    .pc-writing { flex:1; display:flex; flex-direction:column; }
+
+    .pc-top { display:flex; align-items:flex-start; justify-content:space-between; padding:0.9rem 1.25rem 0.75rem; border-bottom:1px solid rgba(107,63,30,0.1); }
+    .pc-label { font-size:0.6rem; font-weight:600; letter-spacing:0.28em; text-transform:uppercase; color:var(--sand); }
+    .pc-theme-badge { font-size:0.58rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--olive); background:rgba(74,103,65,0.1); padding:0.2rem 0.5rem; border-radius:2px; border:1px solid rgba(74,103,65,0.2); }
+
+    /* Stamp area */
+    .stamp-area { position:relative; display:flex; align-items:flex-start; gap:0; }
+    .stamp {
+      width:62px; height:76px;
+      border:1.5px dashed rgba(107,63,30,0.35); border-radius:2px;
+      background:#F0E2C4;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      box-shadow: inset 0 0 0 3px #F0E2C4, inset 0 0 0 4px rgba(107,63,30,0.18);
+      font-size:22px; position:relative;
+    }
+    .stamp-name { font-size:0.45rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--brown); margin-top:0.25rem; opacity:0.7; }
+    .postmark-overlay {
+      position:absolute; top:-6px; right:-6px;
+      width:60px; height:60px;
+      opacity:0.38; pointer-events:none;
+    }
+
+    .pc-body { flex:1; display:flex; gap:0; }
+
+    /* Message */
+    .pc-message { flex:1; padding:1rem 1rem 1rem 1.25rem; border-right:1px solid rgba(107,63,30,0.08); }
+    .msg-label { font-size:0.55rem; font-weight:500; letter-spacing:0.14em; text-transform:uppercase; color:var(--sand); margin-bottom:0.75rem; }
+    .msg-text {
+      font-family:'Caveat',cursive; font-size:1.05rem; color:var(--ink); line-height:2rem;
+      background-image:repeating-linear-gradient(transparent, transparent calc(2rem - 1px), rgba(107,63,30,0.1) calc(2rem - 1px), rgba(107,63,30,0.1) 2rem);
+      min-height:160px; padding-bottom:0.5rem;
+    }
+
+    /* Address */
+    .pc-address { width:165px; padding:1rem 1.25rem 1rem 1rem; display:flex; flex-direction:column; gap:1.25rem; }
+    .addr-block {}
+    .addr-label { font-size:0.55rem; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:var(--sand); margin-bottom:0.3rem; }
+    .addr-name { font-family:'Caveat',cursive; font-size:1rem; color:var(--ink); border-bottom:1px solid rgba(107,63,30,0.15); padding-bottom:0.25rem; }
+    .addr-location { font-family:'Caveat',cursive; font-size:0.82rem; color:var(--brown); opacity:0.65; margin-top:0.3rem; font-style:italic; }
+    .addr-divider { border:none; border-top:1px dashed rgba(107,63,30,0.15); margin:0; }
+
+    .pc-footer { padding:0.6rem 1.25rem; display:flex; justify-content:space-between; align-items:center; border-top:1px solid rgba(107,63,30,0.08); }
+    .pc-footer-date { font-size:0.55rem; color:rgba(107,63,30,0.35); letter-spacing:0.1em; }
+    .pc-footer-nb { font-size:0.55rem; color:rgba(107,63,30,0.35); letter-spacing:0.08em; }
+
+    /* Actions */
+    .actions { display:flex; align-items:center; gap:1rem; margin-top:1.75rem; flex-wrap:wrap; }
+    .btn-share { font-size:0.78rem; font-weight:500; color:var(--cream); background:var(--brown); padding:0.65rem 1.5rem; border-radius:2px; border:none; cursor:pointer; letter-spacing:0.06em; text-transform:uppercase; transition:background 0.2s, transform 0.1s; }
+    .btn-share:hover { background:var(--deep-brown); transform:translateY(-1px); }
+    .btn-ghost { font-size:0.75rem; font-weight:400; color:var(--brown); background:transparent; border:1px solid rgba(107,63,30,0.25); padding:0.63rem 1.2rem; border-radius:2px; cursor:pointer; letter-spacing:0.04em; text-decoration:none; display:inline-block; transition:border-color 0.2s, background 0.2s; }
+    .btn-ghost:hover { border-color:rgba(107,63,30,0.5); background:rgba(107,63,30,0.04); }
+
+    /* Related section */
+    .related { margin-top:3rem; }
+    .related-title { font-family:'Playfair Display',serif; font-size:1.25rem; color:var(--deep-brown); margin-bottom:0.25rem; }
+    .related-sub { font-size:0.78rem; color:var(--brown); opacity:0.65; margin-bottom:1.25rem; }
+    .related-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:0.85rem; }
+    .related-card { background:rgba(250,246,237,0.85); border:1px solid rgba(107,63,30,0.1); border-radius:3px; padding:1rem; text-decoration:none; display:block; transition:transform 0.2s, box-shadow 0.2s; }
+    .related-card:hover { transform:translateY(-3px); box-shadow:0 6px 20px rgba(62,32,10,0.1); }
+    .related-theme { font-size:0.55rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--sand); margin-bottom:0.35rem; }
+    .related-title-card { font-family:'Playfair Display',serif; font-size:0.88rem; font-weight:600; color:var(--deep-brown); line-height:1.3; margin-bottom:0.3rem; }
+    .related-snippet { font-family:'Caveat',cursive; font-size:0.8rem; color:var(--brown); opacity:0.65; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    .related-from { font-size:0.58rem; color:var(--sand); margin-top:0.5rem; }
+
+    @media (max-width:640px) {
+      nav { padding:1.25rem; } .nav-link { display:none; }
+      .page-wrap { padding:1rem 1rem 4rem; }
+      .postcard { flex-direction:column; }
+      .pc-scene { width:100%; min-height:120px; }
+      .pc-body { flex-direction:column; }
+      .pc-message { border-right:none; border-bottom:1px solid rgba(107,63,30,0.08); }
+      .pc-address { width:100%; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-logo"><span class="dot"></span>Postcards to Home</a>
+  <div class="nav-links">
+    <a href="map.html" class="nav-link">UAE Map</a>
+    <a href="theme.html" class="nav-link">Themes</a>
+    <a href="search.html" class="nav-link">Search</a>
+    <a href="create.html" class="nav-btn">Create</a>
+  </div>
+</nav>
+
+<div class="page-wrap">
+  <div class="breadcrumb">
+    <a href="map.html">UAE Map</a><span>›</span>
+    <a href="emirate.html">Sharjah</a><span>›</span>
+    <a href="neighborhood.html">Al Qasimia</a><span>›</span>
+    <a href="#">Postcard</a>
+  </div>
+
+  <div class="postcard-stage">
+    <div class="postcard-airmail">
+      <div class="postcard">
+
+        <!-- Scene -->
+        <div class="pc-scene">
+          <div class="scene-caption">
+            <div class="scene-location">Al Qasimia</div>
+            <div class="scene-emirate">Sharjah · UAE</div>
+          </div>
+        </div>
+
+        <!-- Writing -->
+        <div class="pc-writing">
+          <div class="pc-top">
+            <div>
+              <div class="pc-label">Post Card · بطاقة بريدية</div>
+              <div class="pc-theme-badge" style="margin-top:0.35rem;">Childhood</div>
+            </div>
+            <div class="stamp-area">
+              <div class="stamp">
+                🌴
+                <span class="stamp-name">UAE</span>
+              </div>
+              <svg class="postmark-overlay" viewBox="0 0 60 60" fill="none">
+                <circle cx="30" cy="30" r="28" stroke="#B5372A" stroke-width="1.8"/>
+                <circle cx="30" cy="30" r="23" stroke="#B5372A" stroke-width="0.7"/>
+                <text x="30" y="24" text-anchor="middle" font-size="5.5" font-family="monospace" letter-spacing="1.5" fill="#B5372A">SHARJAH</text>
+                <line x1="10" y1="30" x2="50" y2="30" stroke="#B5372A" stroke-width="1.5"/>
+                <line x1="10" y1="33" x2="50" y2="33" stroke="#B5372A" stroke-width="0.8"/>
+                <text x="30" y="44" text-anchor="middle" font-size="5" font-family="monospace" letter-spacing="1" fill="#B5372A">UAE · 2025</text>
+              </svg>
+            </div>
+          </div>
+
+          <div class="pc-body">
+            <div class="pc-message">
+              <div class="msg-label">Message</div>
+              <div class="msg-text">
+                To Baba — I still remember how you'd wake us all up early before the souq opened, the smell of cardamom rising from the kitchen before anything else. You'd stand at the stove in your white kandura, humming. I didn't know then that those mornings were something to hold on to.
+
+I think about them every Friday, wherever I am.
+              </div>
+            </div>
+
+            <div class="pc-address">
+              <div class="addr-block">
+                <div class="addr-label">To</div>
+                <div class="addr-name">Baba</div>
+                <div class="addr-location">Al Qasimia, Sharjah</div>
+              </div>
+              <hr class="addr-divider">
+              <div class="addr-block">
+                <div class="addr-label">From</div>
+                <div class="addr-name">Nour</div>
+                <div class="addr-location">Dubai, Al Quoz</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pc-footer">
+            <span class="pc-footer-date">March 2025</span>
+            <span class="pc-footer-nb">Al Qasimia · Sharjah</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="actions">
+    <button class="btn-share" onclick="copyLink()">Copy Share Link</button>
+    <a href="neighborhood.html" class="btn-ghost">← Al Qasimia Wall</a>
+    <a href="create.html" class="btn-ghost">Write your own</a>
+  </div>
+
+  <!-- Related -->
+  <div class="related">
+    <div class="related-title">More from Al Qasimia</div>
+    <div class="related-sub">Other voices from this neighborhood.</div>
+    <div class="related-grid">
+      <a href="postcard.html?id=2" class="related-card">
+        <div class="related-theme">School</div>
+        <div class="related-title-card">My old classroom window</div>
+        <div class="related-snippet">I used to look out at that palm tree every afternoon when the teacher wasn't looking…</div>
+        <div class="related-from">From Khalid</div>
+      </a>
+      <a href="postcard.html?id=3" class="related-card">
+        <div class="related-theme">Home</div>
+        <div class="related-title-card">The house on the corner</div>
+        <div class="related-snippet">They tore you down to build a tower. But I remember every tile, every creak in the stairs.</div>
+        <div class="related-from">Anonymous</div>
+      </a>
+      <a href="postcard.html?id=6" class="related-card">
+        <div class="related-theme">Childhood</div>
+        <div class="related-title-card">Running home before dark</div>
+        <div class="related-snippet">My mother used to call from the balcony. We'd hear her all the way from the far end of the street.</div>
+        <div class="related-from">From Hamad</div>
+      </a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function copyLink() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      const btn = document.querySelector('.btn-share');
+      btn.textContent = 'Link Copied!';
+      setTimeout(() => btn.textContent = 'Copy Share Link', 2000);
+    });
+  }
+</script>
+</body>
+</html>

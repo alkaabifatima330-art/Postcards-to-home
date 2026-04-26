@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Read · اقرأ — Postcards from Home</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    @font-face { font-family:'Massira'; src:url('fonts/alfont_com_AlFont_com_29LT-Massira-Pen.otf') format('opentype'); }
+    @font-face { font-family:'Now'; src:url('fonts/NowAlt-Light.otf') format('opentype'); font-weight:400; }
+    :root {
+      --cream:#F8F0DC; --parchment:#EDE1C8; --sand:#B8926A;
+      --brown:#3A2208; --deep-brown:#1A0E04;
+      --red:#CC2222; --blue:#1A2F6B; --olive:#3D5535;
+      --ink:#1A0E04; --oxblood:#9A1A1A;
+      --post-red:#CC2222; --post-navy:#1A2F6B; --post-gold:#C4964A;
+      --font-ui:'Now','Cormorant Garamond',serif;
+      --font-writing-en:'Kalam',cursive;
+      --font-writing-ar:'Massira','Kalam',cursive;
+    }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:var(--font-ui); background:var(--parchment); color:var(--deep-brown); min-height:100vh; overflow-x:hidden; }
+    body::before {
+      content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+      background:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65 0.72' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)' opacity='0.065'/%3E%3C/svg%3E"),
+        radial-gradient(ellipse at 50% 0%, rgba(255,248,230,0.22) 0%, transparent 65%);
+    }
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,400&family=Kalam:wght@300;400&display=swap');
+
+    .page { position:relative; z-index:1; max-width:1100px; margin:0 auto; padding:0 1.5rem 5rem; }
+
+    /* ── NAV ── */
+    .top-nav {
+      display:flex; justify-content:flex-end; align-items:center; gap:0.5rem;
+      padding:0.75rem 0 0;
+    }
+    .nav-link {
+      font-family:var(--font-ui); font-size:0.6rem; font-weight:500;
+      letter-spacing:0.16em; text-transform:uppercase;
+      color:var(--brown); opacity:0.6; text-decoration:none;
+      display:inline-flex; align-items:center; gap:0.35rem;
+      padding:0.32rem 0.75rem; border-radius:2px;
+      border:1px solid rgba(92,52,24,0.18);
+      background:rgba(255,255,255,0.35);
+      transition:opacity 0.15s, background 0.15s, transform 0.15s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .nav-link:hover { opacity:1; background:rgba(255,255,255,0.7); transform:translateY(-1px); }
+    .nav-link.active { opacity:1; background:rgba(92,52,24,0.08); border-color:rgba(92,52,24,0.3); }
+
+    /* ── HERO ── */
+    .hero { text-align:center; padding:0.4rem 0 0.5rem; }
+    .hero-logo-img { height:240px; width:auto; display:block; margin:0 auto; }
+    .read-heading { text-align:center; margin-bottom:1.6rem; }
+    .read-heading h1 {
+      font-family:var(--font-ui); font-size:clamp(1.3rem,3vw,1.9rem);
+      font-weight:400; color:var(--deep-brown); letter-spacing:-0.02em;
+    }
+    .read-heading h1 em { font-style:italic; color:var(--post-red); }
+    .read-heading p { font-size:0.68rem; color:var(--brown); opacity:0.5; margin-top:0.25rem; letter-spacing:0.05em; }
+
+    /* ── FILTER BAR ── */
+    .filter-bar {
+      background:rgba(250,246,237,0.8); border:1px solid rgba(92,52,24,0.12);
+      border-radius:3px; padding:0.85rem 1.1rem; margin-bottom:1.5rem;
+      display:flex; flex-direction:column; gap:0.75rem;
+    }
+
+    /* Search row */
+    .search-row { position:relative; }
+    .search-input {
+      width:100%; font-family:var(--font-ui); font-size:0.82rem;
+      color:var(--ink); background:rgba(255,255,255,0.85);
+      border:1px solid rgba(92,52,24,0.18); border-radius:2px;
+      padding:0.55rem 2.5rem 0.55rem 2.4rem;
+      outline:none; transition:border-color 0.18s, box-shadow 0.18s;
+    }
+    .search-input:focus { border-color:var(--sand); box-shadow:0 0 0 3px rgba(196,149,106,0.15); }
+    .search-input::placeholder { color:rgba(58,34,8,0.3); font-style:italic; }
+    .search-icon { position:absolute; left:0.75rem; top:50%; transform:translateY(-50%); opacity:0.4; font-size:0.85rem; pointer-events:none; }
+    .search-clear-btn {
+      position:absolute; right:0.6rem; top:50%; transform:translateY(-50%);
+      background:none; border:none; cursor:pointer; opacity:0.35; font-size:0.9rem;
+      color:var(--brown); display:none;
+      transition:opacity 0.15s;
+    }
+    .search-clear-btn:hover { opacity:0.8; }
+    .search-clear-btn.show { display:block; }
+
+    /* Dropdowns row */
+    .dropdowns-row { display:flex; flex-wrap:wrap; gap:0.65rem; align-items:flex-end; }
+    .filter-group { display:flex; flex-direction:column; gap:0.28rem; }
+    .filter-lbl {
+      font-family:var(--font-ui); font-size:0.48rem; font-weight:600;
+      letter-spacing:0.2em; text-transform:uppercase; color:rgba(92,52,24,0.5);
+    }
+    .filter-select {
+      font-family:var(--font-ui); font-size:0.76rem; color:var(--brown);
+      background:rgba(255,255,255,0.85); border:1px solid rgba(92,52,24,0.18);
+      border-radius:2px; padding:0.35rem 1.8rem 0.35rem 0.6rem;
+      cursor:pointer; appearance:none; outline:none; min-width:170px;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='5'%3E%3Cpath d='M0 0l4.5 5 4.5-5z' fill='%233A2208' opacity='.4'/%3E%3C/svg%3E");
+      background-repeat:no-repeat; background-position:right 0.55rem center;
+      transition:border-color 0.15s;
+    }
+    .filter-select:focus { border-color:var(--sand); }
+    .filter-select:disabled { opacity:0.4; cursor:not-allowed; }
+
+    /* Theme chips row */
+    .theme-row { display:flex; flex-wrap:wrap; gap:0.4rem; align-items:center; }
+    .filter-theme-lbl {
+      font-family:var(--font-ui); font-size:0.48rem; font-weight:600;
+      letter-spacing:0.2em; text-transform:uppercase; color:rgba(92,52,24,0.5);
+      margin-right:0.2rem; white-space:nowrap;
+    }
+    .theme-chip {
+      font-family:var(--font-ui); font-size:0.58rem; font-weight:500;
+      letter-spacing:0.1em; text-transform:uppercase;
+      color:var(--brown); border:1px solid rgba(92,52,24,0.18);
+      background:rgba(255,255,255,0.55); padding:0.28rem 0.7rem;
+      border-radius:2px; cursor:pointer; user-select:none;
+      transition:background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s cubic-bezier(0.34,1.56,0.64,1);
+      white-space:nowrap;
+    }
+    .theme-chip:hover { background:rgba(255,255,255,0.9); transform:translateY(-1px); }
+    .theme-chip.active { background:var(--post-red); color:#fff; border-color:var(--post-red); }
+
+    /* Result count */
+    .result-row {
+      display:flex; justify-content:flex-end; align-items:center;
+    }
+    .result-count {
+      font-family:var(--font-ui); font-size:0.58rem; color:var(--brown);
+      opacity:0.45; letter-spacing:0.08em;
+    }
+
+    /* ── FLIP CARD GRID ── */
+    .letters-grid {
+      display:grid;
+      grid-template-columns:repeat(2, 1fr);
+      gap:1.5rem;
+    }
+
+    /* Scene — postcard 3:2 ratio */
+    .card-scene {
+      width:100%; aspect-ratio:3/2;
+      perspective:1200px;
+      cursor:pointer;
+    }
+    .card-inner {
+      width:100%; height:100%;
+      position:relative;
+      transform-style:preserve-3d;
+      transition:transform 0.6s cubic-bezier(0.4,0,0.2,1);
+    }
+    /* Hover → flip to photo side */
+    .card-scene:hover .card-inner { transform:rotateY(180deg); }
+
+    .card-face {
+      position:absolute; inset:0;
+      backface-visibility:hidden;
+      border-radius:2px;
+      overflow:hidden;
+    }
+    .card-back-face { transform:rotateY(180deg); }
+
+    /* Front face — postcard writing side */
+    .card-front-inner {
+      height:100%; display:flex;
+      position:relative;
+    }
+    /* Airmail frame overlay */
+    .pc-frame {
+      position:absolute; inset:0; pointer-events:none; z-index:2;
+      border-radius:2px;
+    }
+    .pc-frame.style-airmail { outline:4px solid transparent; box-shadow:inset 0 0 0 4px transparent; background:transparent; }
+
+    .card-message-col {
+      flex:1; padding:0.5rem 0.65rem 0.4rem 0.8rem;
+      border-right:1px solid rgba(92,52,24,0.1);
+      display:flex; flex-direction:column;
+      position:relative;
+      background-image:repeating-linear-gradient(
+        transparent, transparent calc(1.55rem - 1px),
+        rgba(92,52,24,0.07) calc(1.55rem - 1px),
+        rgba(92,52,24,0.07) 1.55rem
+      );
+    }
+    .pc-ghost { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0.06; z-index:0; pointer-events:none; }
+    .card-top-row {
+      display:flex; align-items:center; gap:0.4rem;
+      margin-bottom:0.2rem; position:relative; z-index:1;
+    }
+    .card-top-label {
+      font-family:var(--font-ui); font-size:0.42rem; font-weight:700;
+      letter-spacing:0.26em; text-transform:uppercase;
+      color:rgba(92,52,24,0.38); white-space:nowrap;
+    }
+    .card-theme-pill {
+      display:inline-flex; font-family:var(--font-ui); font-size:0.36rem;
+      font-weight:600; letter-spacing:0.1em; text-transform:uppercase;
+      color:rgba(61,85,53,0.7); border:1px solid rgba(61,85,53,0.3);
+      padding:0.06rem 0.3rem; border-radius:1px; white-space:nowrap;
+    }
+    .card-msg-text {
+      font-family:var(--font-writing-en); font-size:0.84rem; color:var(--ink);
+      line-height:1.55rem; position:relative; z-index:1;
+      display:-webkit-box; -webkit-line-clamp:5; -webkit-box-orient:vertical; overflow:hidden;
+      flex:1;
+    }
+    .card-msg-text[dir="rtl"] { font-family:var(--font-writing-ar); text-align:right; }
+
+    /* Right col */
+    .card-right-col {
+      width:130px; min-width:120px; padding:0.45rem 0.55rem;
+      display:flex; flex-direction:column; gap:0.3rem;
+    }
+    /* Stamp */
+    .card-stamp-wrap { display:flex; justify-content:flex-end; position:relative; margin-bottom:0.15rem; }
+    .card-stamp {
+      width:46px; height:56px; overflow:hidden; background:#EDE0C4;
+      box-shadow:1px 2px 5px rgba(50,22,8,0.18);
+      -webkit-mask:
+        radial-gradient(circle at 50% 0,   transparent 4px,#000 4.5px) top/11px 8px repeat-x,
+        radial-gradient(circle at 50% 100%,transparent 4px,#000 4.5px) bottom/11px 8px repeat-x,
+        radial-gradient(circle at 0 50%,   transparent 4px,#000 4.5px) left/8px 11px repeat-y,
+        radial-gradient(circle at 100% 50%,transparent 4px,#000 4.5px) right/8px 11px repeat-y,
+        linear-gradient(#000 0 0) center/calc(100% - 8px) calc(100% - 8px) no-repeat;
+      mask:
+        radial-gradient(circle at 50% 0,   transparent 4px,#000 4.5px) top/11px 8px repeat-x,
+        radial-gradient(circle at 50% 100%,transparent 4px,#000 4.5px) bottom/11px 8px repeat-x,
+        radial-gradient(circle at 0 50%,   transparent 4px,#000 4.5px) left/8px 11px repeat-y,
+        radial-gradient(circle at 100% 50%,transparent 4px,#000 4.5px) right/8px 11px repeat-y,
+        linear-gradient(#000 0 0) center/calc(100% - 8px) calc(100% - 8px) no-repeat;
+    }
+    .card-stamp img { width:100%; height:100%; object-fit:cover; display:block; }
+    .card-stamp-empty {
+      width:46px; height:56px;
+      border:1.5px dashed rgba(92,52,24,0.2); border-radius:1px;
+      background:#F0E5CC; display:flex; align-items:center; justify-content:center;
+    }
+    .card-stamp-empty span { font-size:0.35rem; text-transform:uppercase; letter-spacing:0.08em; color:rgba(92,52,24,0.3); text-align:center; }
+    .card-postmark {
+      position:absolute; top:-6px; right:-4px;
+      width:34px; height:34px; opacity:0.35;
+      transform:rotate(-10deg); pointer-events:none;
+      object-fit:contain; mix-blend-mode:multiply;
+    }
+
+    .card-divider { height:1px; border-top:1px dashed rgba(92,52,24,0.13); }
+    .card-addr-lbl {
+      font-family:var(--font-ui); font-size:0.42rem; font-weight:700;
+      letter-spacing:0.2em; text-transform:uppercase;
+      color:rgba(92,52,24,0.5); display:block; margin-bottom:0.1rem;
+    }
+    .card-addr-name {
+      font-family:var(--font-writing-en); font-size:0.82rem; color:var(--ink);
+      display:block; border-bottom:1px solid rgba(92,52,24,0.13);
+      padding-bottom:0.08rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    }
+    .card-addr-loc {
+      font-family:var(--font-ui); font-size:0.5rem; color:var(--brown);
+      opacity:0.5; display:block; margin-top:0.08rem;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    }
+    .card-from-block { margin-top:auto; }
+    .card-date {
+      font-family:var(--font-ui); font-size:0.42rem; color:var(--brown);
+      opacity:0.32; display:block; margin-top:0.25rem;
+    }
+
+    /* Flip hint */
+    .card-flip-hint {
+      position:absolute; bottom:5px; left:50%; transform:translateX(-50%);
+      font-family:var(--font-ui); font-size:0.42rem; letter-spacing:0.1em;
+      text-transform:uppercase; color:rgba(92,52,24,0.35);
+      background:rgba(255,255,255,0.6); padding:2px 8px; border-radius:10px;
+      pointer-events:none; z-index:10; white-space:nowrap;
+    }
+    .card-scene:hover .card-flip-hint { color:rgba(92,52,24,0.6); }
+
+    /* Back face — photo side */
+    .card-back-inner {
+      height:100%; position:relative; overflow:hidden;
+      background:linear-gradient(155deg,#7A4825,#A0632E,#C4956A);
+    }
+    .card-back-inner img.back-photo {
+      position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0;
+    }
+    .card-back-grad {
+      position:absolute; inset:0; z-index:1;
+      background:linear-gradient(to top, rgba(10,3,0,0.8) 0%, rgba(10,3,0,0.2) 50%, transparent 100%);
+    }
+    .card-back-content {
+      position:absolute; bottom:0; left:0; right:0; z-index:2;
+      padding:1rem 1.2rem 0.9rem;
+    }
+    .card-back-to {
+      font-family:var(--font-ui); font-style:italic;
+      font-size:clamp(1rem,2.5vw,1.5rem); font-weight:400;
+      color:rgba(255,255,255,0.97); line-height:1.15;
+      text-shadow:0 2px 12px rgba(0,0,0,0.5); display:block; margin-bottom:0.2rem;
+    }
+    .card-back-loc {
+      font-family:var(--font-ui); font-size:0.55rem; color:rgba(255,255,255,0.55);
+      letter-spacing:0.18em; text-transform:uppercase;
+    }
+    .card-back-no-photo {
+      position:absolute; inset:0; z-index:2;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      color:rgba(255,255,255,0.5);
+    }
+    .card-back-no-photo span { font-size:0.58rem; letter-spacing:0.12em; text-transform:uppercase; font-family:var(--font-ui); margin-top:0.5rem; }
+
+    /* Mobile photo peek button — hidden on desktop, shown via media query */
+    .card-photo-btn {
+      display:none;
+      position:absolute; bottom:0.55rem; left:0.6rem; z-index:10;
+      font-family:var(--font-ui); font-size:0.46rem; font-weight:600;
+      letter-spacing:0.1em; text-transform:uppercase;
+      color:rgba(92,52,24,0.55); background:rgba(255,255,255,0.7);
+      border:1px solid rgba(92,52,24,0.2); border-radius:2px;
+      padding:0.28rem 0.6rem; cursor:pointer;
+      align-items:center; gap:0.3rem;
+      backdrop-filter:blur(4px);
+      transition:background 0.15s, color 0.15s;
+    }
+    .card-photo-btn:active { background:rgba(255,255,255,0.95); color:var(--brown); }
+
+    /* "Open full" button on back */
+    .card-open-btn {
+      position:absolute; top:0.6rem; right:0.6rem; z-index:10;
+      font-family:var(--font-ui); font-size:0.5rem; font-weight:600;
+      letter-spacing:0.12em; text-transform:uppercase;
+      color:rgba(255,255,255,0.85); background:rgba(0,0,0,0.35);
+      border:1px solid rgba(255,255,255,0.3); border-radius:2px;
+      padding:0.3rem 0.65rem; cursor:pointer;
+      backdrop-filter:blur(4px);
+      transition:background 0.15s;
+    }
+    .card-open-btn:hover { background:rgba(0,0,0,0.55); }
+
+    /* Frame wrappers for different paper styles */
+    .frame-wrap { border-radius:2px; overflow:hidden; }
+    .frame-wrap.f-airmail { padding:3px; background:repeating-linear-gradient(-45deg,#B5372A 0,#B5372A 6px,#2E4F82 6px,#2E4F82 12px); }
+    .frame-wrap.f-cream { border:2px solid rgba(107,63,30,0.28); }
+    .frame-wrap.f-blue { border:2.5px solid #2E4F82; }
+    .frame-wrap.f-kraft { padding:3px; background:#7A5A2A; }
+    .frame-wrap.f-ivory { border:1.5px solid rgba(107,63,30,0.18); }
+
+    /* Hover lift */
+    .card-scene-wrap {
+      transition:transform 0.22s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .card-scene-wrap:hover { transform:translateY(-4px); }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      text-align:center; padding:5rem 1rem;
+      color:var(--brown); opacity:0.5;
+      font-family:var(--font-ui); font-style:italic; font-size:1rem;
+      grid-column:1/-1;
+    }
+    .empty-state a { color:var(--post-red); text-decoration:none; opacity:1; border-bottom:1px solid rgba(192,57,43,0.3); }
+
+    /* ── MODAL ── */
+    .pc-modal-backdrop {
+      display:none; position:fixed; inset:0;
+      background:rgba(30,12,0,0.65); z-index:1000;
+      align-items:center; justify-content:center; padding:1rem;
+    }
+    .pc-modal-backdrop.open { display:flex; }
+    .pc-modal-inner { width:100%; border-radius:3px; }
+    .pc-modal-close {
+      position:fixed; top:1rem; right:1rem; width:36px; height:36px;
+      border-radius:50%; background:var(--deep-brown); color:var(--cream);
+      border:none; cursor:pointer; font-size:1rem;
+      display:none; align-items:center; justify-content:center;
+      z-index:1100; box-shadow:0 2px 12px rgba(0,0,0,0.35);
+      transition:transform 0.15s, background 0.15s;
+    }
+    .pc-modal-close:hover { transform:scale(1.1); background:#000; }
+
+    @media(max-width:520px) {
+      .letters-grid { grid-template-columns:1fr; }
+      .card-right-col { width:110px; min-width:105px; }
+      .dropdowns-row { flex-direction:column; }
+      .filter-select { min-width:100%; width:100%; }
+      .filter-group { width:100%; }
+      .theme-row { flex-wrap:wrap; row-gap:0.35rem; }
+      .filter-theme-lbl { width:100%; margin-right:0; }
+      /* No hover flip on mobile — use explicit photo button instead */
+      .card-flip-hint { display:none; }
+      .card-scene:hover .card-inner { transform:none; }
+      .card-scene.photo-peek .card-inner { transform:rotateY(180deg); }
+      .card-photo-btn { display:flex !important; }
+      .result-count { margin-left:0 !important; width:100%; padding-top:0.15rem; }
+    }
+
+    /* ── PORTRAIT / KIOSK (vertical touchscreen) ── */
+    @media (orientation: portrait) {
+      .page { padding:1rem 1.2rem 3rem; }
+
+      /* Shrink logo */
+      .hero-logo-img { height:150px; }
+
+      /* Single column grid — full width cards */
+      .letters-grid { grid-template-columns:1fr; gap:1.2rem; }
+
+      /* Cards — postcard 3:2 ratio, full width */
+      .card-scene { aspect-ratio:3/2; }
+
+      /* Always show photo button — no hover on touch */
+      .card-flip-hint { display:none; }
+      .card-scene:hover .card-inner { transform:none; }
+      .card-scene.photo-peek .card-inner { transform:rotateY(180deg); }
+      .card-photo-btn { display:flex !important; }
+
+      /* Filter bar — stack everything */
+      .filter-bar { flex-direction:column; gap:0.5rem; }
+      .dropdowns-row { flex-direction:column; gap:0.4rem; }
+      .filter-select { min-width:100%; width:100%; font-size:0.75rem; padding:0.5rem; }
+      .filter-group { width:100%; }
+      .theme-row { flex-wrap:wrap; row-gap:0.4rem; }
+      .filter-theme-lbl { width:100%; margin-right:0; }
+      .result-count { margin-left:0 !important; width:100%; }
+      .search-input { width:100%; font-size:0.85rem; padding:0.55rem 0.8rem; }
+
+      /* Theme chips — larger tap */
+      .theme-chip { font-size:0.6rem; padding:0.28rem 0.7rem; }
+
+      /* Nav */
+      .nav-link { font-size:0.6rem; padding:0.35rem 0.6rem; }
+
+      /* Modal full-screen on portrait */
+      .pc-modal-backdrop { align-items:flex-start; padding:2rem 0.8rem; }
+      .pc-modal-inner { max-width:100%; }
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,400&family=Kalam:wght@300;400&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="page">
+
+  <!-- Nav -->
+  <nav class="top-nav">
+    <a href="index.html" class="nav-link">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+      Write · اكتب
+    </a>
+    <a href="explore.html" class="nav-link">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+      Explore · استكشف
+    </a>
+    <a href="read.html" class="nav-link active">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="1"/><line x1="12" y1="5" x2="12" y2="19"/><line x1="14" y1="9" x2="20" y2="9"/><line x1="14" y1="13" x2="20" y2="13"/><line x1="14" y1="17" x2="18" y2="17"/></svg>
+      Read · اقرأ
+    </a>
+  </nav>
+
+  <!-- Hero -->
+  <div class="hero">
+    <img src="logo.png" alt="Postcards from Home" class="hero-logo-img">
+  </div>
+
+  <!-- Filter bar -->
+  <div class="filter-bar">
+    <!-- Search -->
+    <div class="search-row">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="search-input" type="text"
+        placeholder="Search messages, names, places… · ابحث في الرسائل"
+        oninput="onSearch(this.value)">
+      <button class="search-clear-btn" id="search-clear-btn" onclick="clearSearch()">✕</button>
+    </div>
+
+    <!-- Dropdowns -->
+    <div class="dropdowns-row">
+      <div class="filter-group">
+        <span class="filter-lbl">City / Emirate · المدينة</span>
+        <select class="filter-select" id="f-location" onchange="onLocationChange()">
+          <option value="">All · الكل</option>
+          <option value="Abu Dhabi">Abu Dhabi · أبوظبي</option>
+          <option value="Dubai">Dubai · دبي</option>
+          <option value="Sharjah">Sharjah · الشارقة</option>
+          <option value="Ajman">Ajman · عجمان</option>
+          <option value="Umm Al Quwain">Umm Al Quwain · أم القيوين</option>
+          <option value="Ras Al Khaimah">Ras Al Khaimah · رأس الخيمة</option>
+          <option value="Fujairah">Fujairah · الفجيرة</option>
+          <option value="INTL">International · دولي</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <span class="filter-lbl">Neighborhood · الحي</span>
+        <select class="filter-select" id="f-neighborhood" onchange="applyFilters()" disabled>
+          <option value="">All · الكل</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Themes + count -->
+    <div class="theme-row">
+      <span class="filter-theme-lbl">Theme · الموضوع</span>
+      <button class="theme-chip" data-theme="">All · الكل</button>
+      <button class="theme-chip" data-theme="I Miss">I Miss · اشتقت</button>
+      <button class="theme-chip" data-theme="I Love">I Love · أحب</button>
+      <button class="theme-chip" data-theme="I Long For">I Long For · أتوق</button>
+      <button class="theme-chip" data-theme="I Remember">I Remember · أتذكر</button>
+      <span class="result-count" id="result-count" style="margin-left:auto;"></span>
+    </div>
+  </div>
+
+  <!-- Grid -->
+  <div class="letters-grid" id="letters-grid"></div>
+
+</div>
+
+<!-- Modal -->
+<div class="pc-modal-backdrop" id="pc-modal" onclick="closeModal(event)">
+  <div style="width:100%;max-width:860px;">
+    <!-- Flip bar above the card -->
+    <div style="display:flex;justify-content:center;margin-bottom:0.65rem;">
+      <button id="modal-flip-btn" onclick="toggleModalFlip()" style="font-family:var(--font-ui);font-size:0.58rem;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.8);background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);padding:0.38rem 1.1rem;border-radius:20px;cursor:pointer;backdrop-filter:blur(4px);display:inline-flex;align-items:center;gap:0.4rem;transition:background 0.15s;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg>
+        Flip to Photo · اقلب للصورة
+      </button>
+    </div>
+    <div class="pc-modal-inner" id="pc-modal-inner-wrap">
+      <!-- Writing face -->
+      <div id="pc-modal-writing"><div id="pc-modal-content"></div></div>
+      <!-- Photo face (hidden by default) -->
+      <div id="pc-modal-photo" style="display:none;border-radius:3px;overflow:hidden;aspect-ratio:3/2;background:linear-gradient(155deg,#7A4825,#A0632E,#C4956A);position:relative;">
+        <img id="pc-modal-photo-img" src="" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">
+        <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(10,3,0,0.8) 0%,rgba(10,3,0,0.15) 55%,transparent 100%);"></div>
+        <div style="position:absolute;bottom:0;left:0;right:0;padding:2rem 2.2rem 1.8rem;">
+          <span id="pc-modal-photo-to" style="font-family:var(--font-ui);font-style:italic;font-size:clamp(1.5rem,3vw,2.2rem);color:rgba(255,255,255,0.97);display:block;margin-bottom:0.3rem;text-shadow:0 2px 18px rgba(0,0,0,0.5);"></span>
+          <span id="pc-modal-photo-loc" style="font-family:var(--font-ui);font-size:0.62rem;color:rgba(255,255,255,0.55);letter-spacing:0.2em;text-transform:uppercase;"></span>
+        </div>
+        <div id="pc-modal-no-photo" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:rgba(255,255,255,0.4);">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          <span style="font-family:var(--font-ui);font-size:0.6rem;letter-spacing:0.14em;text-transform:uppercase;margin-top:0.6rem;">No photo attached · لا توجد صورة</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<button class="pc-modal-close" id="pc-modal-close-btn" onclick="closeModalBtn()">✕</button>
+
+<script>
+// ── Neighborhoods ──
+const NBS = {
+  'Abu Dhabi':['Al Khalidiyah','Al Markaziyah','Al Bateen','Khalifa City A','Khalifa City B','Khalifa City C','Yas Island','Mussafah','Al Reef','Corniche Road','Al Mushrif','Al Nahyan','Al Wahda','Al Danah','Al Karamah','Al Manhal','Al Zaab','Al Falah','Al Muroor','Al Rowdah','Al Maqtaa','Al Reem Island','Saadiyat Island','Al Raha Beach','Mohammed Bin Zayed City','Shakhbout City','Al Shamkha','Al Wathba','Al Rahba','Masdar City','Zayed City','Baniyas','Al Samha','Al Ghadeer','Al Ain Downtown','Al Ain Oasis','Al Jimi','Al Muwaiji','Al Hili','Al Khabisi','Asharej','Al Towayya','Zakher','Al Jahili','Al Maqam','Falaj Hazza','Ruwais','Liwa','Mirfa','Ghayathi','Delma Island','Sir Bani Yas Island','Madinat Zayed'],
+  'Dubai':['Deira','Bur Dubai','Jumeirah','Al Quoz','Dubai Marina','Downtown Dubai','Al Barsha','Karama','Satwa','Al Garhoud','Mirdif','Jebel Ali','Al Rashidiya','International City','Al Qusais','Al Murar','Naif','Al Rigga','Port Saeed','Al Wasl','Umm Suqeim','Jumeirah Lakes Towers','Business Bay','DIFC','Dubai Creek Harbour','Al Mamzar','Al Twar','Nad Al Hamar','Al Mizhar','Al Nahda','Muhaisnah','Al Warqaa','Dubai Silicon Oasis','Dubai Sports City','Dubai Investment Park','Jumeirah Village Circle','Discovery Gardens','Dubai Hills Estate','Al Khawaneej','Ras Al Khor','Dubai Festival City','The Palm Jumeirah','Al Sufouh','Motor City','Town Square','Al Furjan'],
+  'Sharjah':['Al Majaz','Al Qasimia','Al Nahda','Muwaileh','Khor Fakkan','Kalba','Al Khalidiyah','Al Butina','Al Taawun','Al Wahda','Halwan','Maysaloon','Al Yarmook','Al Jubail','Al Layyeh','Al Azra','Al Ghafeyah','Al Hazannah','Al Manakh','Al Mirgab','Al Qadisiyah','Al Rahmaniyah','Al Riqqa','Al Sabkha','Al Soor','Al Zahraa','Rolla','University City','Sharjah Waterfront'],
+  'Ajman':['Ajman City Centre','Al Nuaimiyah','Al Rashidiyah','Al Jurf','Al Hamidiyah','Al Mowaihat','Emirates City','Al Rawdah','Al Rumaila','Al Amerah','Al Bustan','Al Sawan','Al Corniche','Musheiref','Al Zahra','Al Nakhil','Masfout','Manama','Al Yasmeen','Al Alia','Al Zorah','Ajman Uptown'],
+  'Umm Al Quwain':['UAQ City','Al Salamah','Al Raas','Falaj Al Mualla','Al Dour','Khor Al Beidah','Al Humra','Al Raudah','Al Aahad','Old Town UAQ','Al Reem'],
+  'Ras Al Khaimah':['Al Nakheel','Khuzam','Al Qusaidat','Wadi Shah','Al Hamra','Mina Al Arab','Al Jazeera Al Hamra','Al Rams','Ghalilah','Khor Khwair','Al Dhait North','Al Dhait South','Al Uraibi','Al Mairid','Al Hudaibah','RAK Old Town','Al Seer','Al Ghail','Khatt','Al Marjan Island'],
+  'Fujairah':['Fujairah City','Dibba Al Fujairah','Masafi','Murbah','Qidfa','Al Hayl','Mirbah','Sakamkam','Al Bithnah','Fujairah Old Town','Al Faseel','Al Aqah','Khor Kalba'],
+};
+
+const FRAME_CLASSES = ['f-airmail','f-cream','f-blue','f-kraft','f-ivory'];
+const PAPER_COLORS = ['#FAF3E2','#EDE0C0','#E8EFF8','#D9BC8A','#FDFAF0'];
+
+// Sample cards for demo
+const SAMPLES = [
+  { id:'s1', to:'Al Fahidi', from:'Nour', message:'The smell of cardamom coffee on Friday mornings. The way the creek reflected the old dhows before everything changed around us.', theme:'I Remember', emirate:'Dubai', neighborhood:'Bur Dubai', location:'Bur Dubai, Dubai', stampSrc:'', sceneSrc:'', styleIdx:0, date:'01/04/2026' },
+  { id:'s2', to:'My old street', from:'Mariam', message:'I left ten years ago and still dream about the corniche at sunset — the fountain, children chasing pigeons near the water.', theme:'I Long For', emirate:'Sharjah', neighborhood:'Al Majaz', location:'Al Majaz, Sharjah', stampSrc:'', sceneSrc:'', styleIdx:1, date:'02/04/2026' },
+  { id:'s3', to:'Jaddi', from:'Anonymous', message:'Every Eid we walked from Khalidiyah to the corniche. The sea breeze. The sound of your stories. I still hear them.', theme:'I Love', emirate:'Abu Dhabi', neighborhood:'Al Khalidiyah', location:'Al Khalidiyah, Abu Dhabi', stampSrc:'', sceneSrc:'', styleIdx:0, date:'02/04/2026' },
+  { id:'s4', to:'السوق القديم', from:'خالد', message:'رائحة الهيل والقهوة في الفجر — شيوخ يشربون الشاي قبل أن تأتي الحرارة. أنتِ لا تزالين وطناً.', theme:'I Remember', emirate:'Dubai', neighborhood:'Deira', location:'Deira, Dubai', stampSrc:'', sceneSrc:'', styleIdx:3, date:'03/04/2026' },
+  { id:'s5', to:"Baba's fishing boat", from:'Sara', message:"You took me fishing every Thursday before school. The Gulf was calm, the world was quiet, and I felt completely safe.", theme:'I Love', emirate:'Ras Al Khaimah', neighborhood:'Al Rams', location:'Al Rams, Ras Al Khaimah', stampSrc:'', sceneSrc:'', styleIdx:2, date:'03/04/2026' },
+  { id:'s6', to:'My classroom', from:'Fatima', message:'Room 7, Al Qasimia school. The chalk smell, the ceiling fan, Mrs. Hind writing on the board. You shaped everything I am.', theme:'I Remember', emirate:'Sharjah', neighborhood:'Al Qasimia', location:'Al Qasimia, Sharjah', stampSrc:'', sceneSrc:'', styleIdx:0, date:'04/04/2026' },
+  { id:'s7', to:'The creek at low tide', from:'Yusuf', message:'Dibba before the hotels. Just the mountains, the sea, and fishermen untangling their nets. I miss that quietness so much.', theme:'I Miss', emirate:'Fujairah', neighborhood:'Dibba Al Fujairah', location:'Dibba, Fujairah', stampSrc:'', sceneSrc:'', styleIdx:1, date:'04/04/2026' },
+  { id:'s8', to:"Grandma's kitchen", from:'Layla', message:"The smell of thareed on Fridays. She'd start at dawn and by noon the whole building knew. I would give anything to eat there again.", theme:'I Long For', emirate:'Abu Dhabi', neighborhood:'Al Mushrif', location:'Al Mushrif, Abu Dhabi', stampSrc:'', sceneSrc:'', styleIdx:0, date:'05/04/2026' },
+  { id:'s9', to:'UAQ corniche', from:'Hassan', message:"The smallest emirate with the biggest sky. I never appreciated you until I was gone. That quiet is something I chase everywhere now.", theme:'I Miss', emirate:'Umm Al Quwain', neighborhood:'UAQ City', location:'UAQ City, Umm Al Quwain', stampSrc:'', sceneSrc:'', styleIdx:1, date:'06/04/2026' },
+  { id:'s10', to:'My first apartment', from:'Omar', message:"Al Nuaimiyah, 2008. Twelve of us in a two bedroom. We were poor and didn't know it. Those were the richest years.", theme:'I Remember', emirate:'Ajman', neighborhood:'Al Nuaimiyah', location:'Al Nuaimiyah, Ajman', stampSrc:'', sceneSrc:'', styleIdx:0, date:'06/04/2026' },
+  { id:'s11', to:'London', from:'Aisha', message:"Three years and I still look for the smell of oud on strangers. The UAE never fully leaves you.", theme:'I Miss', emirate:'', neighborhood:'', location:'London, UK', fromLocation:'Fujairah', stampSrc:'', sceneSrc:'', styleIdx:2, date:'07/04/2026' },
+  { id:'s12', to:'مطبخ ستي', from:'ريم', message:'رائحة الثريد كل جمعة. كانت تبدأ من الفجر وبحلول الظهر يعرف كل المبنى. أعطي أي شيء لآكل هناك مرة أخرى.', theme:'I Long For', emirate:'Abu Dhabi', neighborhood:'Al Reem Island', location:'Al Reem Island, Abu Dhabi', stampSrc:'', sceneSrc:'', styleIdx:4, date:'07/04/2026' },
+];
+
+// ── Supabase ──
+const _sb = supabase.createClient(
+  'https://wyzkqhzekjpuhtinskou.supabase.co',
+  'sb_publishable_FyUsXFFI_gMgk6gQlRhMMg_Y0NB7cQE'
+);
+
+function dbRowToCard(r) {
+  return {
+    id: r.id,
+    to: r.to || '',
+    from: r.from || '',
+    message: r.message || '',
+    theme: r.theme || '',
+    emirate: r.emirate || '',
+    neighborhood: r.neighborhood || '',
+    location: r.location || '',
+    fromEmirate: r.from_emirate || '',
+    fromLocation: r.from_location || '',
+    stampSrc: r.stamp_src || '',
+    sceneSrc: r.scene_src || '',
+    cardBg: r.card_bg || '',
+    styleIdx: r.style_idx || 0,
+    date: r.date || '',
+    anon: r.anonymous || false
+  };
+}
+
+async function loadFromSupabase() {
+  const { data, error } = await _sb
+    .from('letters')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(200);
+  if (error) { console.error('Supabase load error:', error); return []; }
+  return (data || []).map(dbRowToCard);
+}
+
+// ── State ──
+function loadWall() { try { return JSON.parse(localStorage.getItem('ptoh_wall')||'[]'); } catch(e){ return []; } }
+const _wallRaw = loadWall();
+const _featured = _wallRaw.filter(c => c.featured);
+const _rest = _wallRaw.filter(c => !c.featured);
+let allCards = [..._featured, ..._rest, ...SAMPLES];
+let activeTheme = '';
+let searchQuery = '';
+
+// Load from Supabase and merge, then set up real-time
+loadFromSupabase().then(dbCards => {
+  if (dbCards.length) {
+    // merge: DB cards first, then any local-only cards not in DB
+    const dbIds = new Set(dbCards.map(c => c.id));
+    const localOnly = _wallRaw.filter(c => !dbIds.has(c.id));
+    allCards = [...dbCards, ...localOnly, ...SAMPLES];
+    applyFilters();
+    if (paramId) {
+      const idx = allCards.findIndex(c => c.id === paramId);
+      if (idx !== -1) setTimeout(() => openCard(idx), 300);
+    }
+  }
+});
+
+// Real-time: new letters appear instantly on read page
+_sb.channel('letters-feed')
+  .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'letters' }, payload => {
+    const newCard = dbRowToCard(payload.new);
+    allCards = [newCard, ...allCards.filter(c => c.id !== newCard.id)];
+    applyFilters();
+  })
+  .subscribe();
+
+// ── URL params (from map click or share link) ──
+const params = new URLSearchParams(location.search);
+const paramEmirate = params.get('emirate') || '';
+const paramNeighborhood = params.get('neighborhood') || '';
+const paramId = params.get('id') ? Number(params.get('id')) : null;
+
+// ── Filter logic ──
+function applyFilters() {
+  const loc = document.getElementById('f-location').value;
+  const nb = document.getElementById('f-neighborhood').value;
+
+  const filtered = allCards.filter(c => {
+    if (loc === 'INTL') {
+      if (c.emirate && c.emirate !== 'INTL' && c.emirate !== '') return false;
+    } else if (loc) {
+      if (c.emirate !== loc) return false;
+    }
+    const activeNb = nb || (paramNeighborhood && !loc ? paramNeighborhood : '');
+    if (activeNb && c.neighborhood !== activeNb) return false;
+    if (activeTheme && c.theme !== activeTheme) return false;
+    if (searchQuery) {
+      const hay = [c.message||'',c.from||'',c.to||'',c.location||'',c.theme||''].join(' ').toLowerCase();
+      if (!hay.includes(searchQuery)) return false;
+    }
+    return true;
+  });
+
+  document.getElementById('result-count').textContent = filtered.length + ' letter' + (filtered.length!==1?'s · رسائل':' · رسالة');
+  renderGrid(filtered);
+}
+
+function onLocationChange() {
+  const val = document.getElementById('f-location').value;
+  const nbSel = document.getElementById('f-neighborhood');
+  if (val && val !== 'INTL' && NBS[val]) {
+    nbSel.innerHTML = '<option value="">All · الكل</option>' + NBS[val].map(n=>`<option>${n}</option>`).join('');
+    nbSel.disabled = false;
+  } else {
+    nbSel.innerHTML = '<option value="">All · الكل</option>';
+    nbSel.disabled = true;
+  }
+  applyFilters();
+}
+
+function onSearch(val) {
+  searchQuery = val.trim().toLowerCase();
+  document.getElementById('search-clear-btn').classList.toggle('show', !!searchQuery);
+  applyFilters();
+}
+function clearSearch() {
+  document.getElementById('search-input').value = '';
+  searchQuery = '';
+  document.getElementById('search-clear-btn').classList.remove('show');
+  applyFilters();
+}
+
+// Theme chips
+document.querySelectorAll('.theme-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const t = chip.dataset.theme;
+    activeTheme = (activeTheme === t) ? '' : t;
+    document.querySelectorAll('.theme-chip').forEach(c => c.classList.remove('active'));
+    if (activeTheme !== '' || t === '') {
+      document.querySelector(`.theme-chip[data-theme="${activeTheme}"]`)?.classList.add('active');
+    }
+    if (t === '') { activeTheme = ''; document.querySelector('.theme-chip[data-theme=""]').classList.add('active'); }
+    applyFilters();
+  });
+});
+// Default "All" chip active
+document.querySelector('.theme-chip[data-theme=""]').classList.add('active');
+
+// ── Render ──
+function renderGrid(cards) {
+  const grid = document.getElementById('letters-grid');
+  if (!cards.length) {
+    grid.innerHTML = `<div class="empty-state">No letters here yet.<br><a href="index.html">Write the first one · اكتب أول رسالة</a></div>`;
+    return;
+  }
+  grid.innerHTML = cards.map((c, i) => buildMiniCard(c, i, cards)).join('');
+}
+
+function buildMiniCard(c, i, arr) {
+  const sIdx = c.styleIdx !== undefined ? c.styleIdx : 0;
+  const fc = FRAME_CLASSES[sIdx] || 'f-airmail';
+  const paperColor = PAPER_COLORS[sIdx] || '#FAF3E2';
+  const isAr = /[\u0600-\u06FF]/.test(c.message||'');
+  const hasPhoto = !!c.sceneSrc;
+  const hasStamp = !!c.stampSrc;
+
+  // find original index in allCards for modal
+  const origIdx = allCards.indexOf(c);
+
+  return `
+  <div class="card-scene-wrap">
+    <div class="card-scene" onclick="openCard(${origIdx})">
+      <div class="card-inner" data-orig="${origIdx}">
+
+        <!-- FRONT — writing side -->
+        <div class="card-face card-front-face">
+          <div class="frame-wrap ${fc}" style="height:100%;">
+            <div class="card-front-inner" style="background:${paperColor};">
+              ${hasPhoto ? `<img class="pc-ghost" src="${c.sceneSrc}" alt="">` : ''}
+
+              <!-- Message col -->
+              <div class="card-message-col">
+                <div class="card-top-row">
+                  <span class="card-top-label">Post Card · بطاقة بريدية</span>
+                  ${c.theme ? `<span class="card-theme-pill">${c.theme}</span>` : ''}
+                </div>
+                <p class="card-msg-text" dir="${isAr?'rtl':'auto'}">${c.message||'…'}</p>
+              </div>
+
+              <!-- Right col -->
+              <div class="card-right-col">
+                <div class="card-stamp-wrap">
+                  ${hasStamp
+                    ? `<div class="card-stamp"><img src="${c.stampSrc}" alt="stamp"></div>`
+                    : `<div class="card-stamp-empty"><span>Stamp<br>طابع</span></div>`}
+                  <img class="card-postmark" src="emirates-post.png" alt="">
+                </div>
+                <div class="card-divider"></div>
+                <div>
+                  <span class="card-addr-lbl">To · إلى</span>
+                  <span class="card-addr-name">${c.to||'—'}</span>
+                  ${c.location ? `<span class="card-addr-loc">${c.location}</span>` : ''}
+                </div>
+                <div class="card-from-block">
+                  <span class="card-addr-lbl">From · من</span>
+                  <span class="card-addr-name" style="font-size:0.75rem;">${c.from||'Anonymous'}</span>
+                  ${c.date ? `<span class="card-date">${c.date}</span>` : ''}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card-flip-hint">hover for photo · مرّر للصورة — click to expand · انقر للتوسيع</div>
+          ${hasPhoto ? `<button class="card-photo-btn" onclick="event.stopPropagation();const s=this.closest('.card-scene');s.classList.toggle('photo-peek');this.textContent=s.classList.contains('photo-peek')?'✕ Letter · الرسالة':'📷 Photo · صورة';">📷 Photo · صورة</button>` : ''}
+        </div>
+
+        <!-- BACK — photo side -->
+        <div class="card-face card-back-face">
+          <div class="card-back-inner">
+            ${hasPhoto ? `<img class="back-photo" src="${c.sceneSrc}" alt="">` : ''}
+            <div class="card-back-grad"></div>
+            ${!hasPhoto ? `<div class="card-back-no-photo"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>No photo attached · لا توجد صورة</span></div>` : ''}
+            <div class="card-back-content">
+              <span class="card-back-to">${c.to||'—'}</span>
+              <span class="card-back-loc">${c.location||''}</span>
+            </div>
+            <button class="card-open-btn" onclick="event.stopPropagation(); openCard(${origIdx})">Read full · اقرأ ↗</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── Modal ──
+let _currentModalCard = null;
+let _modalShowingPhoto = false;
+
+function buildFullCardHTML(c) {
+  const sIdx = c.styleIdx !== undefined ? c.styleIdx : 0;
+  const fc = FRAME_CLASSES[sIdx] || 'f-airmail';
+  const paperColor = PAPER_COLORS[sIdx] || '#FAF3E2';
+  const isAr = /[\u0600-\u06FF]/.test(c.message||'');
+
+  const frameStyles = ['padding:5px;background:repeating-linear-gradient(-45deg,#B5372A 0,#B5372A 8px,#2E4F82 8px,#2E4F82 16px);','padding:0;border:2.5px solid rgba(107,63,30,0.28);background:transparent;','padding:0;border:3px solid #2E4F82;background:transparent;','padding:5px;background:#7A5A2A;','padding:0;border:1.5px solid rgba(107,63,30,0.18);background:transparent;'];
+  const fs = frameStyles[sIdx] || frameStyles[0];
+
+  return `<div style="${fs} border-radius:3px; box-shadow:0 4px 24px rgba(62,32,10,0.13),0 18px 60px rgba(62,32,10,0.09);">
+    <div style="display:flex;aspect-ratio:3/2;overflow:hidden;background:${paperColor};position:relative;">
+      ${c.sceneSrc ? `<img src="${c.sceneSrc}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.06;z-index:0;pointer-events:none;">` : ''}
+      <div style="flex:1;display:flex;flex-direction:column;position:relative;z-index:1;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:0.7rem 0.9rem 0.55rem 1rem;border-bottom:1px solid rgba(107,63,30,0.1);gap:0.5rem;">
+          <div>
+            <div style="font-size:0.52rem;font-weight:700;letter-spacing:0.28em;text-transform:uppercase;color:rgba(92,52,24,0.38);font-family:var(--font-ui);">Post Card · بطاقة بريدية</div>
+            <div style="font-size:0.46rem;letter-spacing:0.18em;text-transform:uppercase;color:rgba(36,61,110,0.5);font-family:var(--font-ui);">Air Mail · بريد جوي</div>
+            ${c.theme ? `<span style="display:inline-flex;margin-top:0.15rem;font-size:0.5rem;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#4A6741;background:rgba(74,103,65,0.09);border:1px solid rgba(74,103,65,0.22);padding:0.12rem 0.4rem;border-radius:2px;">${c.theme}</span>` : ''}
+          </div>
+          <div style="position:relative;flex-shrink:0;">
+            <div style="width:72px;height:88px;overflow:hidden;background:#EDE0C4;box-shadow:2px 3px 8px rgba(50,22,8,0.2);-webkit-mask:radial-gradient(circle at 50% 0,transparent 5.5px,#000 6px) top/14px 11px repeat-x,radial-gradient(circle at 50% 100%,transparent 5.5px,#000 6px) bottom/14px 11px repeat-x,radial-gradient(circle at 0 50%,transparent 5.5px,#000 6px) left/11px 14px repeat-y,radial-gradient(circle at 100% 50%,transparent 5.5px,#000 6px) right/11px 14px repeat-y,linear-gradient(#000 0 0) center/calc(100% - 11px) calc(100% - 11px) no-repeat;mask:radial-gradient(circle at 50% 0,transparent 5.5px,#000 6px) top/14px 11px repeat-x,radial-gradient(circle at 50% 100%,transparent 5.5px,#000 6px) bottom/14px 11px repeat-x,radial-gradient(circle at 0 50%,transparent 5.5px,#000 6px) left/11px 14px repeat-y,radial-gradient(circle at 100% 50%,transparent 5.5px,#000 6px) right/11px 14px repeat-y,linear-gradient(#000 0 0) center/calc(100% - 11px) calc(100% - 11px) no-repeat;">
+              ${c.stampSrc ? `<img src="${c.stampSrc}" style="width:100%;height:100%;object-fit:cover;display:block;">` : '<div style="height:100%;display:flex;align-items:center;justify-content:center;font-size:0.42rem;text-transform:uppercase;color:rgba(107,63,30,0.4);text-align:center;padding:4px;">Stamp<br>طابع</div>'}
+            </div>
+            <img src="emirates-post.png" style="position:absolute;top:-5px;right:-5px;width:46px;height:46px;opacity:0.36;transform:rotate(-10deg);pointer-events:none;object-fit:contain;mix-blend-mode:multiply;">
+          </div>
+        </div>
+        <div style="flex:1;display:flex;min-height:0;">
+          <div style="flex:1;padding:0.75rem 0.85rem 0.6rem 1rem;border-right:1px solid rgba(107,63,30,0.08);background-image:repeating-linear-gradient(transparent,transparent calc(2rem - 1px),rgba(107,63,30,0.08) calc(2rem - 1px),rgba(107,63,30,0.08) 2rem);">
+            <p style="font-family:${isAr?'var(--font-writing-ar)':'var(--font-writing-en)'};font-size:1.05rem;color:#1A110A;line-height:2rem;white-space:pre-wrap;word-break:break-word;" dir="${isAr?'rtl':'auto'}">${c.message||''}</p>
+          </div>
+          <div style="width:160px;padding:0.65rem 0.9rem 0.6rem 0.75rem;display:flex;flex-direction:column;gap:0.5rem;">
+            <div>
+              <span style="font-size:0.46rem;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:rgba(92,52,24,0.55);display:block;margin-bottom:0.18rem;font-family:var(--font-ui);">To · إلى</span>
+              <span style="font-family:var(--font-writing-en);font-size:1rem;color:#1A110A;border-bottom:1px solid rgba(107,63,30,0.18);display:block;padding-bottom:0.1rem;">${c.to||'—'}</span>
+              ${c.location ? `<span style="font-family:var(--font-ui);font-size:0.72rem;color:#6B3F1E;opacity:0.65;display:block;margin-top:0.12rem;">${c.location}</span>` : ''}
+            </div>
+            <hr style="border:none;border-top:1px dashed rgba(107,63,30,0.14);">
+            <div>
+              <span style="font-size:0.46rem;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:rgba(92,52,24,0.55);display:block;margin-bottom:0.18rem;font-family:var(--font-ui);">From · من</span>
+              <span style="font-family:var(--font-writing-en);font-size:1rem;color:#1A110A;border-bottom:1px solid rgba(107,63,30,0.18);display:block;padding-bottom:0.1rem;">${c.from||'Anonymous'}</span>
+              ${c.fromLocation ? `<span style="font-family:var(--font-ui);font-size:0.72rem;color:#6B3F1E;opacity:0.65;display:block;margin-top:0.12rem;">${c.fromLocation}</span>` : ''}
+            </div>
+            ${c.date ? `<span style="font-size:0.46rem;color:#6B3F1E;opacity:0.4;margin-top:auto;font-family:var(--font-ui);">${c.date}</span>` : ''}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function openCard(idx) {
+  const c = allCards[idx];
+  if (!c) return;
+  _currentModalCard = c;
+  _modalShowingPhoto = false;
+  // Show writing side
+  document.getElementById('pc-modal-content').innerHTML = buildFullCardHTML(c);
+  document.getElementById('pc-modal-writing').style.display = '';
+  document.getElementById('pc-modal-photo').style.display = 'none';
+  // Update flip button
+  const flipBtn = document.getElementById('modal-flip-btn');
+  flipBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg> Flip to Photo · اقلب للصورة`;
+  document.getElementById('pc-modal').classList.add('open');
+  document.getElementById('pc-modal-close-btn').style.display = 'flex';
+}
+
+function toggleModalFlip() {
+  const c = _currentModalCard;
+  if (!c) return;
+  _modalShowingPhoto = !_modalShowingPhoto;
+  const writing = document.getElementById('pc-modal-writing');
+  const photo = document.getElementById('pc-modal-photo');
+  const photoImg = document.getElementById('pc-modal-photo-img');
+  const noPhoto = document.getElementById('pc-modal-no-photo');
+  const flipBtn = document.getElementById('modal-flip-btn');
+  if (_modalShowingPhoto) {
+    writing.style.display = 'none';
+    photo.style.display = '';
+    if (c.sceneSrc) {
+      photoImg.src = c.sceneSrc;
+      photoImg.style.display = '';
+      noPhoto.style.display = 'none';
+    } else {
+      photoImg.style.display = 'none';
+      noPhoto.style.display = 'flex';
+    }
+    document.getElementById('pc-modal-photo-to').textContent = c.to || '—';
+    document.getElementById('pc-modal-photo-loc').textContent = c.location || '';
+    flipBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg> Flip to Writing · اقلب للكتابة`;
+  } else {
+    writing.style.display = '';
+    photo.style.display = 'none';
+    flipBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg> Flip to Photo · اقلب للصورة`;
+  }
+}
+function closeModal(e) {
+  if (e.target === document.getElementById('pc-modal')) {
+    document.getElementById('pc-modal').classList.remove('open');
+    document.getElementById('pc-modal-close-btn').style.display = 'none';
+  }
+}
+function closeModalBtn() {
+  document.getElementById('pc-modal').classList.remove('open');
+  document.getElementById('pc-modal-close-btn').style.display = 'none';
+}
+
+// ── Init ──
+if (paramEmirate) {
+  const locSel = document.getElementById('f-location');
+  locSel.value = paramEmirate;
+  onLocationChange();
+  if (paramNeighborhood) {
+    const nbSel = document.getElementById('f-neighborhood');
+    nbSel.value = paramNeighborhood;
+    applyFilters();
+  }
+} else if (paramNeighborhood) {
+  applyFilters();
+} else {
+  applyFilters();
+}
+
+
+</script>
+</body>
+</html>
