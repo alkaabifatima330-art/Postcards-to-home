@@ -341,8 +341,8 @@ const wallCards = loadWall();
 
 // ── Map ──
 const map = L.map('map', { center:[24.2,54.6], zoom:7, minZoom:4, maxZoom:15, scrollWheelZoom:true });
-L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg',
-  { attribution:'Stamen Design · Stadia Maps', maxZoom:16 }).addTo(map);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+  { attribution:'© OpenStreetMap · © CARTO', maxZoom:19, subdomains:'abcd' }).addTo(map);
 
 // ── Emirate data ──
 const EMIRATE_DATA = [
