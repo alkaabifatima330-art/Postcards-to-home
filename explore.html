@@ -73,7 +73,7 @@
 
     /* ── MAP ── */
     #map { position:fixed; top:36px; left:32px; right:32px; bottom:32px; z-index:2;
-           filter:sepia(0.75) saturate(0.65) brightness(1.08) contrast(0.85) hue-rotate(5deg); }
+           filter:sepia(0.45) saturate(0.8) brightness(0.97) contrast(0.92); }
     #map-grain {
       position:fixed; top:36px; left:32px; right:32px; bottom:32px;
       z-index:3; pointer-events:none;
@@ -341,8 +341,8 @@ const wallCards = loadWall();
 
 // ── Map ──
 const map = L.map('map', { center:[24.2,54.6], zoom:7, minZoom:4, maxZoom:15, scrollWheelZoom:true });
-L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-  { attribution:'© OpenStreetMap · © CARTO', maxZoom:19, subdomains:'abcd' }).addTo(map);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}',
+  { attribution:'© Esri · National Geographic', maxZoom:16 }).addTo(map);
 
 // ── Emirate data ──
 const EMIRATE_DATA = [
