@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Postcards from Home</title>
+  <title>Postcards to Home · رسائل الى الوطن</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400;1,600&family=Kalam:wght@300;400;700&display=swap" rel="stylesheet">
@@ -793,18 +793,18 @@
 
   <!-- Hero logo -->
   <div class="hero-compact">
-    <img src="logo.png" alt="Postcards from Home" class="hero-logo-img">
+    <img src="logo.png" alt="Postcards to Home · رسائل الى الوطن" class="hero-logo-img">
   </div>
 
   <!-- Tagline row with style switcher -->
   <div class="tagline-row">
-    <p class="tagline-text en">Write to someone, somewhere, or something. Whether they read it or not, you wrote it, and that's enough.</p>
+    <p class="tagline-text en">Some letters never arrive. But writing them brings you home.</p>
     <div class="style-switcher">
       <button class="style-arrow" onclick="prevStyle()" title="Previous · السابق">‹</button>
       <span class="style-name" id="style-name">Airmail · بريد جوي</span>
       <button class="style-arrow" onclick="nextStyle()" title="Next · التالي">›</button>
     </div>
-    <p class="tagline-text ar">اكتب لشخصٍ ما، لمكانٍ ما، أو لشيءٍ ما. سواء قرأوها أم لا، أنت كتبتَ، وهذا يكفي.</p>
+    <p class="tagline-text ar">بعض الرسائل لا تصل. لكن كتابتها تعيدك إلى الوطن.</p>
   </div>
 
   <!-- Hidden file input -->
@@ -1928,8 +1928,8 @@ function showShareSheet(cardData) {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Postcards from Home · رسائل من الوطن',
-          text: 'Someone wrote you a postcard · كتبوا لك بطاقة بريدية',
+          title: 'Postcards to Home · رسائل الى الوطن',
+          text: 'Someone sent you a letter home · أرسلوا لك رسالة إلى الوطن',
           url: cardUrl
         });
       } catch(e) { /* user cancelled */ }
