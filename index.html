@@ -3,6 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>
+    // Kiosk rotation: ?kiosk=1 rotates page 90° so landscape screen appears portrait
+    if (new URLSearchParams(location.search).get('kiosk') === '1') {
+      document.documentElement.style.cssText = `
+        transform: rotate(90deg);
+        transform-origin: center center;
+        width: 100vh;
+        height: 100vw;
+        position: fixed;
+        top: calc((100vh - 100vw) / 2);
+        left: calc((100vw - 100vh) / 2);
+        overflow: hidden;
+      `;
+    }
+  </script>
   <title>Postcards to Home · رسائل الى الوطن</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
