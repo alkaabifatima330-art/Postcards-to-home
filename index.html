@@ -7,7 +7,7 @@
     // Kiosk rotation: ?kiosk=1 rotates page 90° so landscape screen appears portrait
     if (new URLSearchParams(location.search).get('kiosk') === '1') {
       document.documentElement.style.cssText = `
-        transform: rotate(90deg);
+        transform: rotate(-90deg);
         transform-origin: center center;
         width: 100vh;
         height: 100vw;
@@ -16,6 +16,9 @@
         left: calc((100vw - 100vh) / 2);
         overflow: hidden;
       `;
+      document.addEventListener('DOMContentLoaded', () => {
+        document.body.classList.add('kiosk-portrait');
+      });
     }
   </script>
   <title>Postcards to Home · رسائل الى الوطن</title>
@@ -724,6 +727,24 @@
       .photo-preload-grid { grid-template-columns:repeat(2,1fr); }
     }
     input:focus, textarea:focus { outline:none; }
+
+    /* ── KIOSK PORTRAIT (landscape screen rotated via CSS) ── */
+    body.kiosk-portrait .page { padding:1rem 1.5rem 5rem; max-width:100%; }
+    body.kiosk-portrait .tagline-text { display:none; }
+    body.kiosk-portrait .tagline-row { justify-content:center; margin-bottom:1.2rem; }
+    body.kiosk-portrait .hero-logo-img { height:170px; }
+    body.kiosk-portrait .dual-card-wrap { flex-direction:column; align-items:center; gap:1.8rem; padding-bottom:3rem; }
+    body.kiosk-portrait .pc-front-card { width:100%; max-width:100%; aspect-ratio:3/2; transform:none; }
+    body.kiosk-portrait .pc-back-card { width:100%; max-width:100%; aspect-ratio:unset; transform:none; }
+    body.kiosk-portrait .postcard { min-height:460px; }
+    body.kiosk-portrait .pc-body { flex-direction:row; }
+    body.kiosk-portrait .pc-message { min-height:200px; }
+    body.kiosk-portrait .msg-ta { font-size:1.05rem; line-height:1.7; }
+    body.kiosk-portrait .toform-in { font-size:1rem; padding:5px 0; }
+    body.kiosk-portrait .theme-pill { font-size:0.55rem; padding:0.22rem 0.55rem; }
+    body.kiosk-portrait .deco-stamp { width:80px; }
+    body.kiosk-portrait .photo-preload-grid { grid-template-columns:repeat(3,1fr); gap:0.6rem; }
+    body.kiosk-portrait .btn-pub { font-size:0.75rem; padding:0.7rem 1.6rem; }
 
     /* ── PORTRAIT / KIOSK (vertical touchscreen) ── */
     @media (orientation: portrait) {
