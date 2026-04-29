@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script>
-    if (new URLSearchParams(location.search).get('kiosk') === '1') {
+    const _isKiosk = new URLSearchParams(location.search).get('kiosk') === '1';
+    if (_isKiosk) {
       document.documentElement.classList.add('kiosk-mode');
       const s = document.createElement('style');
       s.textContent = `
@@ -25,294 +26,213 @@
   <title>Explore — Postcards to Home · رسائل الى الوطن</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Kalam&display=swap" rel="stylesheet">
   <style>
-    @font-face { font-family:'Now'; src:url('fonts/NowAlt-Light.otf') format('opentype'); font-weight:400; }
-    @font-face { font-family:'Massira'; src:url('fonts/alfont_com_AlFont_com_29LT-Massira-Pen.otf') format('opentype'); font-weight:400; }
+    @font-face { font-family:'Now'; src:url('fonts/NowAlt-Light.otf') format('opentype'); }
+    @font-face { font-family:'Massira'; src:url('fonts/alfont_com_AlFont_com_29LT-Massira-Pen.otf') format('opentype'); }
     :root {
-      --parchment:#EDE1C8; --brown:#3A2208;
+      --parchment:#EDE1C8; --brown:#3A2208; --red:#CC2222;
       --font-ui:'Now','Cormorant Garamond',serif;
       --font-vintage:'IM Fell English',Georgia,serif;
       --font-ar:'Massira',serif;
     }
     * { box-sizing:border-box; margin:0; padding:0; }
-    html, body { height:100%; overflow:hidden; font-family:var(--font-ui); background:#BBA882; }
-
-    .map-surround {
-      position:fixed; inset:0; z-index:0;
-      background: radial-gradient(ellipse at 25% 20%, rgba(255,248,215,0.55) 0%, transparent 50%),
-                  radial-gradient(ellipse at 75% 80%, rgba(170,138,80,0.45) 0%, transparent 50%), #C4AE88;
-    }
-    .map-surround::before {
-      content:''; position:absolute; inset:0; z-index:1; pointer-events:none;
-      background: radial-gradient(ellipse at 0% 0%, rgba(70,35,8,0.5) 0%, transparent 42%),
-                  radial-gradient(ellipse at 100% 0%, rgba(70,35,8,0.45) 0%, transparent 42%),
-                  radial-gradient(ellipse at 0% 100%, rgba(70,35,8,0.52) 0%, transparent 42%),
-                  radial-gradient(ellipse at 100% 100%, rgba(70,35,8,0.48) 0%, transparent 42%),
-                  radial-gradient(ellipse at 50% 50%, transparent 58%, rgba(50,25,5,0.15) 100%);
-    }
+    html, body { height:100%; overflow:hidden; font-family:var(--font-ui); background:var(--parchment); }
 
     /* ── NAV ── */
     .top-nav {
-      position:fixed; top:0; left:0; right:0; z-index:200;
-      display:flex; align-items:center; justify-content:flex-end; gap:0.4rem;
-      padding:0.48rem 1.4rem;
-      background:rgba(196,174,136,0.97);
-      border-bottom:1px solid rgba(92,52,24,0.28);
-      box-shadow:0 1px 8px rgba(50,22,8,0.14);
+      position:fixed; top:0; right:0; z-index:200;
+      display:flex; gap:0.4rem; padding:0.6rem 0.8rem;
     }
     .nav-link {
-      font-family:var(--font-ui); font-size:0.58rem; letter-spacing:0.16em; text-transform:uppercase;
-      color:var(--brown); opacity:0.65; text-decoration:none;
-      display:inline-flex; align-items:center; gap:0.32rem;
-      padding:0.28rem 0.7rem; border-radius:2px;
-      border:1px solid rgba(92,52,24,0.2); background:rgba(255,255,255,0.38);
-      transition:opacity 0.15s, background 0.15s, transform 0.15s cubic-bezier(0.34,1.56,0.64,1);
+      display:flex; align-items:center; gap:0.25rem;
+      font-size:0.52rem; letter-spacing:0.1em; text-transform:uppercase;
+      color:rgba(58,34,8,0.6); text-decoration:none;
+      padding:0.28rem 0.55rem; border-radius:2px;
+      border:1px solid transparent;
+      transition:all 0.15s;
     }
-    .nav-link:hover { opacity:1; background:rgba(255,255,255,0.72); transform:translateY(-1px); }
-    .nav-link.active { opacity:1; background:rgba(92,52,24,0.12); border-color:rgba(92,52,24,0.38); }
+    .nav-link:hover { background:rgba(255,255,255,0.6); color:var(--brown); }
+    .nav-link.active { background:rgba(92,52,24,0.1); border-color:rgba(92,52,24,0.25); color:var(--brown); }
 
-    /* ── FRAME ── */
-    .map-border {
-      position:fixed; top:36px; left:32px; right:32px; bottom:32px;
-      z-index:5; pointer-events:none;
-      border:2.5px solid rgba(92,52,24,0.4);
-      box-shadow:inset 0 0 0 5px rgba(92,52,24,0.07), inset 0 0 0 9px rgba(92,52,24,0.04),
-                 0 0 50px rgba(50,22,8,0.35);
-    }
-    .map-border::before { content:''; position:absolute; inset:7px; border:1px solid rgba(92,52,24,0.22); }
-    .corner {
-      position:fixed; z-index:6; pointer-events:none;
-      font-size:15px; color:rgba(92,52,24,0.55); width:22px; height:22px;
-      display:flex; align-items:center; justify-content:center;
-      background:radial-gradient(circle, #CCBA96 65%, transparent 100%);
-    }
-    .corner-tl{top:27px;left:23px;} .corner-tr{top:27px;right:23px;}
-    .corner-bl{bottom:23px;left:23px;} .corner-br{bottom:23px;right:23px;}
-
-    /* ── MAP ── */
-    #map { position:fixed; top:36px; left:32px; right:32px; bottom:32px; z-index:2;
-           filter:sepia(0.45) saturate(0.8) brightness(0.97) contrast(0.92); }
-    #map-grain {
-      position:fixed; top:36px; left:32px; right:32px; bottom:32px;
-      z-index:3; pointer-events:none;
-      background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72 0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.055'/%3E%3C/svg%3E");
-      mix-blend-mode:multiply;
+    /* ── LAYOUT: map top, letters bottom ── */
+    #explore-wrap {
+      display:flex; flex-direction:column;
+      height:100vh; overflow:hidden;
     }
 
-    /* ── LABEL TYPES ── */
-    .em-label {
-      font-family:var(--font-vintage); font-style:italic; font-weight:bold;
-      font-size:0.95rem; text-align:center; white-space:nowrap; line-height:1.35;
-      cursor:pointer; pointer-events:all;
-      text-shadow:0 0 8px rgba(205,185,148,0.98), 0 0 18px rgba(205,185,148,0.9), 1px 1px 0 rgba(205,185,148,0.7);
-      transition:transform 0.15s cubic-bezier(0.34,1.56,0.64,1);
+    /* MAP SECTION */
+    #map-section {
+      position:relative; flex-shrink:0;
+      height:42vh; min-height:220px;
+      transition:height 0.35s cubic-bezier(0.4,0,0.2,1);
+      background:#C4AE88;
     }
-    .em-label:hover { transform:scale(1.08) translateY(-2px); }
-    .em-label .em-ar { display:block; font-size:0.6rem; font-style:normal; font-family:var(--font-ui); opacity:0.82; margin-top:1px; }
-    .em-label .em-cnt { display:block; font-size:0.46rem; font-style:normal; letter-spacing:0.12em;
-      font-family:var(--font-ui); opacity:0.7; margin-top:2px;
-      background:rgba(205,185,148,0.65); border-radius:8px; padding:0 5px; }
+    #map-section.expanded { height:100vh; }
+    #map-section.collapsed { height:0; min-height:0; }
 
-    .geo-label { font-family:var(--font-vintage); font-style:italic; color:rgba(58,34,8,0.42);
-      white-space:nowrap; text-shadow:0 0 5px rgba(205,185,148,0.7); pointer-events:none; letter-spacing:0.12em; }
-    .sea-label { font-family:var(--font-vintage); font-style:italic; color:rgba(30,60,90,0.46);
-      white-space:nowrap; text-shadow:0 0 8px rgba(180,210,220,0.6); pointer-events:none; letter-spacing:0.1em; }
-    .city-label { font-family:var(--font-vintage); font-style:italic; color:rgba(58,34,8,0.78);
-      white-space:nowrap; text-shadow:0 0 6px rgba(205,185,148,0.95), 1px 1px 0 rgba(205,185,148,0.6);
-      pointer-events:none; padding:1px 3px; letter-spacing:0.03em; }
-
-    /* ── NEIGHBORHOOD LABELS ── */
-    .nb-label {
-      font-family:var(--font-vintage); font-style:italic; font-size:0.82rem;
-      white-space:nowrap; cursor:pointer; pointer-events:all;
-      padding:2px 5px; line-height:1.35;
-      text-shadow:0 0 7px rgba(205,185,148,0.98), 0 0 14px rgba(205,185,148,0.8), 1px 1px 0 rgba(205,185,148,0.7);
-      border-bottom:1px dotted; transition:opacity 0.12s;
-    }
-    .nb-label:hover { opacity:0.7; }
-    .nb-label .nb-ar { display:block; font-family:var(--font-ar); font-style:normal; font-size:0.82em; opacity:0.85; line-height:1.3; }
-
-    /* ── LETTER DOT TOOLTIP ── */
-    .leaflet-tooltip.dot-tt {
-      background:rgba(245,237,216,0.98) !important;
-      border:1px solid rgba(92,52,24,0.22) !important;
-      border-radius:2px !important;
-      box-shadow:0 6px 24px rgba(0,0,0,0.28), 0 2px 6px rgba(0,0,0,0.15) !important;
-      padding:0 !important; max-width:220px; min-width:160px;
-      pointer-events:none;
-    }
-    .leaflet-tooltip.dot-tt::before { border-top-color:rgba(92,52,24,0.22) !important; }
-    .dot-tt-inner { padding:10px 13px 9px; }
-    .dot-tt-from { font-family:'IM Fell English',Georgia,serif; font-style:italic; font-size:0.88rem; color:rgba(30,14,4,0.9); margin-bottom:2px; }
-    .dot-tt-loc { font-family:'Now',sans-serif; font-size:0.5rem; letter-spacing:0.12em; text-transform:uppercase; color:rgba(58,34,8,0.5); margin-bottom:7px; }
-    .dot-tt-loc { padding-bottom:2px; }
-
-    /* ── CARTOUCHE ── */
-    .cartouche { position:fixed; bottom:40px; left:50%; transform:translateX(-50%); z-index:10; pointer-events:none; }
-    .cartouche-inner {
-      display:inline-block; background:rgba(196,174,136,0.92); backdrop-filter:blur(4px);
-      border:1px solid rgba(92,52,24,0.32); border-radius:2px; padding:0.3rem 1.1rem;
-      box-shadow:0 2px 10px rgba(50,22,8,0.18), inset 0 1px 0 rgba(255,255,255,0.4);
-    }
-    .cartouche-text { font-family:var(--font-vintage); font-style:italic; font-size:0.65rem; color:rgba(58,34,8,0.65); letter-spacing:0.05em; }
-
-    /* ── POSTCARD MODAL ── */
-    #pc-overlay {
-      display:none; position:fixed; inset:0; z-index:600;
-      background:rgba(20,10,4,0.72); backdrop-filter:blur(5px);
-      align-items:center; justify-content:center;
-    }
-    #pc-overlay.open { display:flex; }
-
-    .pc-close {
-      position:fixed; top:20px; right:28px; z-index:610;
-      background:rgba(196,174,136,0.9); border:1px solid rgba(92,52,24,0.3);
-      border-radius:2px; width:36px; height:36px; cursor:pointer;
-      font-size:1.3rem; color:var(--brown); display:flex; align-items:center; justify-content:center;
-      transition:background 0.12s, transform 0.12s;
-    }
-    .pc-close:hover { background:#EDE1C8; transform:scale(1.08); }
-
-    .pc-nav {
-      position:fixed; z-index:610; top:50%; transform:translateY(-50%);
-      background:rgba(196,174,136,0.88); border:1px solid rgba(92,52,24,0.25);
-      border-radius:2px; width:40px; height:56px; cursor:pointer;
-      font-family:var(--font-vintage); font-size:1.8rem; color:var(--brown);
-      display:flex; align-items:center; justify-content:center;
-      transition:background 0.12s, transform 0.12s;
-    }
-    .pc-nav:hover { background:#EDE1C8; transform:translateY(-50%) scale(1.05); }
-    .pc-nav:disabled { opacity:0.3; cursor:default; }
-    #pc-prev { left:20px; }
-    #pc-next { right:20px; }
-
-    .pc-counter {
-      position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:610;
-      font-family:var(--font-vintage); font-style:italic; font-size:0.7rem;
-      color:rgba(205,185,148,0.8); letter-spacing:0.08em;
-    }
-
-    /* ── POSTCARD CARD 3D ── */
-    .pc-scene {
-      width:min(640px,90vw); height:min(400px,54vw);
-      perspective:1200px; position:relative; z-index:605;
-    }
-    .pc-inner {
+    #map {
       width:100%; height:100%;
-      transform-style:preserve-3d;
-      transition:transform 0.7s cubic-bezier(0.4,0,0.2,1);
+      filter:sepia(0.45) saturate(0.8) brightness(0.97) contrast(0.92);
+    }
+
+    /* map grain overlay */
+    #map-grain {
+      position:absolute; inset:0; pointer-events:none; z-index:5;
+      background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72 0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.055'/%3E%3C/svg%3E");
+    }
+
+    /* expand / collapse map button */
+    #map-toggle {
+      position:absolute; bottom:8px; left:50%; transform:translateX(-50%);
+      z-index:50; background:rgba(237,225,200,0.9); border:1px solid rgba(92,52,24,0.3);
+      border-radius:20px; padding:5px 18px; cursor:pointer;
+      font-family:var(--font-ui); font-size:0.52rem; letter-spacing:0.1em;
+      text-transform:uppercase; color:var(--brown);
+      transition:background 0.15s;
+      display:flex; align-items:center; gap:0.4rem;
+    }
+    #map-toggle:hover { background:#EDE1C8; }
+
+    /* selected emirate chip on map */
+    #selected-chip {
+      position:absolute; top:8px; left:8px; z-index:50;
+      background:rgba(204,34,34,0.9); color:#fff;
+      border-radius:20px; padding:4px 14px;
+      font-size:0.55rem; letter-spacing:0.08em; text-transform:uppercase;
+      display:none; align-items:center; gap:6px; cursor:pointer;
+    }
+    #selected-chip.show { display:flex; }
+    #selected-chip .chip-x { font-size:0.8rem; line-height:1; opacity:0.8; }
+
+    /* leaflet label styles */
+    .em-label {
+      font-family:var(--font-vintage); font-style:italic; font-size:0.85rem;
+      color:#8B5E3C; cursor:pointer; white-space:nowrap;
+      text-shadow:1px 1px 3px rgba(255,248,215,0.8), -1px -1px 3px rgba(255,248,215,0.8);
+    }
+    .em-label:hover { opacity:0.75; }
+    .em-ar { display:block; font-size:0.68rem; font-family:var(--font-ar); font-style:normal; margin-top:1px; }
+    .em-cnt { display:block; font-size:0.48rem; font-family:var(--font-ui); font-style:normal; letter-spacing:0.08em; opacity:0.6; margin-top:2px; }
+    .sea-label { font-family:var(--font-vintage); font-style:italic; color:rgba(58,100,140,0.55); white-space:nowrap; pointer-events:none; }
+    .geo-label { font-family:var(--font-ui); letter-spacing:0.16em; color:rgba(58,34,8,0.3); pointer-events:none; }
+    .city-label { font-family:var(--font-vintage); font-style:italic; color:rgba(58,34,8,0.4); pointer-events:none; }
+    .leaflet-control-zoom { margin-top:40px !important; margin-left:6px !important; }
+    .leaflet-control-zoom a { background:rgba(196,174,136,0.9)!important; color:var(--brown)!important; border-color:rgba(92,52,24,0.28)!important; font-size:1rem!important; }
+    .leaflet-control-attribution { font-size:7px!important; opacity:0.25; background:transparent!important; }
+
+    /* ── LETTERS SECTION ── */
+    #letters-section {
+      flex:1; overflow-y:auto; background:var(--parchment);
+      border-top:2px solid rgba(92,52,24,0.12);
+    }
+
+    /* filter bar */
+    #filter-bar {
+      position:sticky; top:0; z-index:100;
+      background:var(--parchment);
+      border-bottom:1px solid rgba(92,52,24,0.1);
+      padding:0.6rem 1rem;
+    }
+    #emirate-tabs {
+      display:flex; gap:0.3rem; flex-wrap:nowrap; overflow-x:auto;
+      padding-bottom:0.4rem; margin-bottom:0.4rem;
+      scrollbar-width:none;
+    }
+    #emirate-tabs::-webkit-scrollbar { display:none; }
+    .em-tab {
+      flex-shrink:0; padding:0.22rem 0.65rem; border-radius:2px;
+      border:1px solid rgba(92,52,24,0.2); background:rgba(255,255,255,0.5);
+      font-size:0.52rem; letter-spacing:0.08em; text-transform:uppercase;
+      color:rgba(58,34,8,0.65); cursor:pointer; transition:all 0.15s;
+      white-space:nowrap;
+    }
+    .em-tab:hover { background:rgba(255,255,255,0.8); }
+    .em-tab.active { color:#fff; border-color:transparent; }
+
+    #theme-tabs {
+      display:flex; gap:0.3rem; flex-wrap:wrap;
+    }
+    .th-tab {
+      padding:0.18rem 0.55rem; border-radius:2px;
+      border:1px solid rgba(92,52,24,0.18); background:transparent;
+      font-size:0.48rem; letter-spacing:0.08em; text-transform:uppercase;
+      color:rgba(58,34,8,0.5); cursor:pointer; transition:all 0.15s;
+    }
+    .th-tab.active { background:var(--red); color:#fff; border-color:var(--red); }
+
+    #result-label {
+      font-size:0.48rem; letter-spacing:0.1em; color:rgba(58,34,8,0.4);
+      text-transform:uppercase; margin-top:0.3rem;
+    }
+
+    /* letter cards */
+    #letters-grid {
+      padding:0.8rem 1rem 3rem;
+      display:flex; flex-direction:column; gap:0.8rem;
+    }
+
+    .ltr-card {
+      background:#FAF3E2; border-radius:3px;
+      padding:0.9rem 1rem;
+      box-shadow:0 2px 8px rgba(50,22,8,0.1), 0 6px 20px rgba(50,22,8,0.07);
+      cursor:pointer; transition:transform 0.15s, box-shadow 0.15s;
+      border-left:3px solid transparent;
       position:relative;
     }
-    .pc-inner.flipped { transform:rotateY(180deg); }
+    .ltr-card:hover { transform:translateY(-2px); box-shadow:0 4px 16px rgba(50,22,8,0.14), 0 10px 30px rgba(50,22,8,0.1); }
+    .ltr-card-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.45rem; }
+    .ltr-card-to { font-size:0.52rem; letter-spacing:0.1em; text-transform:uppercase; color:rgba(58,34,8,0.45); }
+    .ltr-card-theme { font-size:0.44rem; padding:0.1rem 0.4rem; border-radius:1px; border:1px solid currentColor; opacity:0.7; }
+    .ltr-card-msg { font-family:var(--font-vintage); font-style:italic; font-size:0.82rem; line-height:1.6; color:var(--brown); margin-bottom:0.5rem; }
+    .ltr-card-msg.ar { font-family:var(--font-ar); direction:rtl; text-align:right; }
+    .ltr-card-footer { display:flex; justify-content:space-between; align-items:center; }
+    .ltr-card-from { font-size:0.5rem; letter-spacing:0.1em; text-transform:uppercase; color:rgba(58,34,8,0.5); }
+    .ltr-card-loc { font-size:0.44rem; color:rgba(58,34,8,0.4); }
+    .ltr-card-photo { width:36px; height:36px; border-radius:2px; object-fit:cover; opacity:0.85; }
 
-    .pc-face {
-      position:absolute; inset:0;
-      backface-visibility:hidden; -webkit-backface-visibility:hidden;
-      border-radius:2px; overflow:hidden;
-      box-shadow:0 20px 60px rgba(0,0,0,0.55), 0 4px 12px rgba(0,0,0,0.3);
+    /* no letters */
+    #no-letters {
+      text-align:center; padding:3rem 1rem;
+      font-family:var(--font-vintage); font-style:italic;
+      color:rgba(58,34,8,0.4); font-size:0.9rem; display:none;
     }
-    .pc-back { transform:rotateY(180deg); }
 
-    /* ── POSTCARD FRONT (writing side) ── */
-    .pc-front-wrap {
-      width:100%; height:100%; display:flex; flex-direction:column;
-      font-family:var(--font-ui);
+    /* ── LETTER MODAL ── */
+    #ltr-modal {
+      position:fixed; inset:0; z-index:500;
+      background:rgba(12,6,2,0.82); backdrop-filter:blur(8px);
+      display:none; align-items:center; justify-content:center;
+      padding:1.5rem;
     }
-    .pc-front-header {
-      display:flex; justify-content:space-between; align-items:center;
-      padding:6px 14px 5px; border-bottom:1px solid rgba(92,52,24,0.15);
-      flex-shrink:0;
+    #ltr-modal.open { display:flex; }
+    #ltr-modal-box {
+      background:#FAF3E2; border-radius:4px; width:100%; max-width:520px;
+      max-height:90vh; overflow-y:auto;
+      box-shadow:0 24px 80px rgba(0,0,0,0.5);
     }
-    .pc-front-header-text {
-      font-family:var(--font-ui); font-size:0.48rem; letter-spacing:0.2em; text-transform:uppercase;
-      color:rgba(58,34,8,0.5);
-    }
-    .pc-front-body {
-      flex:1; display:grid; grid-template-columns:1fr 1px 0.62fr;
-      overflow:hidden;
-    }
-    .pc-front-divider { background:rgba(92,52,24,0.12); }
-    .pc-msg-area { padding:14px 16px; display:flex; flex-direction:column; justify-content:center; overflow:hidden; }
-    .pc-msg-text {
-      font-family:'Kalam', cursive; font-size:clamp(0.75rem,1.8vw,0.95rem);
-      line-height:1.75; color:rgba(30,14,4,0.82); flex:1;
-    }
-    .pc-msg-text.ar { font-family:var(--font-ar); direction:rtl; text-align:right; font-size:1.1rem; }
-    .pc-addr-area {
-      padding:12px 14px; display:flex; flex-direction:column; justify-content:space-between;
-    }
-    .pc-stamp-box {
-      align-self:flex-end; width:52px; height:62px;
-      border:1.5px solid rgba(92,52,24,0.25); background:rgba(255,255,255,0.5);
+    #ltr-modal-close {
+      position:fixed; top:1rem; right:1rem; z-index:510;
+      width:32px; height:32px; border-radius:50%;
+      background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3);
+      color:#fff; font-size:1.1rem; cursor:pointer;
       display:flex; align-items:center; justify-content:center;
-      font-size:0.4rem; color:rgba(92,52,24,0.4); letter-spacing:0.08em; text-transform:uppercase;
     }
-    .pc-addr-fields { flex:1; display:flex; flex-direction:column; justify-content:flex-end; gap:4px; padding-top:8px; }
-    .pc-addr-label { font-size:0.45rem; letter-spacing:0.14em; text-transform:uppercase; color:rgba(58,34,8,0.45); }
-    .pc-addr-value { font-family:var(--font-vintage); font-style:italic; font-size:0.78rem; color:rgba(30,14,4,0.75); border-bottom:1px solid rgba(92,52,24,0.12); padding-bottom:2px; margin-bottom:4px; }
-    .pc-theme-pill {
-      display:inline-block; font-size:0.42rem; letter-spacing:0.12em; text-transform:uppercase;
-      padding:2px 7px; border-radius:8px; border:1px solid; margin-top:6px; align-self:flex-start;
+    #ltr-modal-nav {
+      position:fixed; bottom:1.5rem; left:50%; transform:translateX(-50%);
+      display:flex; gap:0.6rem; z-index:510;
     }
-    /* Frame styles for different paper types */
-    .pf-airmail { background:#FAF3E2;
-      background-image: repeating-linear-gradient(135deg, transparent, transparent 8px, rgba(204,0,0,0.18) 8px, rgba(204,0,0,0.18) 12px, transparent 12px, transparent 20px, rgba(30,60,150,0.18) 20px, rgba(30,60,150,0.18) 24px);
-      background-attachment:local;
-      outline:3px solid; outline-offset:-6px; outline-color:rgba(204,0,0,0.25); }
-    .pf-cream { background:#F8F2E0; outline:2px solid rgba(170,138,80,0.3); outline-offset:-5px; }
-    .pf-blue { background:#EBF3FF; outline:2px solid rgba(60,100,180,0.25); outline-offset:-5px; }
-    .pf-kraft { background:#E8D9B8; outline:2px solid rgba(100,70,30,0.3); outline-offset:-5px; }
-    .pf-ivory { background:#FFFEF5; outline:1px solid rgba(180,160,100,0.2); outline-offset:-5px; }
-
-    /* ── POSTCARD BACK (photo side) ── */
-    .pc-back-wrap { width:100%; height:100%; position:relative; overflow:hidden; }
-    .pc-back-photo { width:100%; height:100%; object-fit:cover; }
-    .pc-back-no-photo {
-      width:100%; height:100%; display:flex; align-items:center; justify-content:center;
-      background:linear-gradient(135deg, #D4C4A0 0%, #C0A878 40%, #B89860 100%);
-      position:relative;
+    .modal-nav-btn {
+      padding:0.4rem 1.2rem; border-radius:20px;
+      background:rgba(237,225,200,0.9); border:1px solid rgba(92,52,24,0.3);
+      color:var(--brown); font-family:var(--font-ui); font-size:0.65rem;
+      letter-spacing:0.08em; cursor:pointer;
     }
-    .pc-back-no-photo::before {
-      content:''; position:absolute; inset:0;
-      background:repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(255,255,255,0.06) 20px, rgba(255,255,255,0.06) 21px);
-    }
-    .pc-back-location {
-      text-align:center; position:relative; z-index:1;
-    }
-    .pc-back-em {
-      font-family:var(--font-vintage); font-style:italic; font-weight:bold;
-      font-size:clamp(1.6rem,4vw,2.6rem); color:rgba(58,30,8,0.55); line-height:1.1; letter-spacing:0.05em;
-    }
-    .pc-back-nb {
-      font-family:var(--font-ui); font-size:0.65rem; letter-spacing:0.22em; text-transform:uppercase;
-      color:rgba(58,30,8,0.45); margin-top:4px;
-    }
-    .pc-flip-btn {
-      position:absolute; bottom:12px; left:50%; transform:translateX(-50%); z-index:610;
-      background:rgba(196,174,136,0.88); border:1px solid rgba(92,52,24,0.3); border-radius:2px;
-      padding:5px 18px; cursor:pointer;
-      font-family:var(--font-ui); font-size:0.52rem; letter-spacing:0.12em; text-transform:uppercase;
-      color:var(--brown); transition:background 0.12s;
-    }
-    .pc-flip-btn:hover { background:#EDE1C8; }
-
-    /* Leaflet overrides */
-    .leaflet-control-zoom { margin-top:6px !important; margin-left:8px !important; }
-    .leaflet-control-zoom a { background:rgba(196,174,136,0.94)!important; color:var(--brown)!important; border-color:rgba(92,52,24,0.28)!important; font-family:var(--font-vintage)!important; font-size:1rem!important; }
-    .leaflet-control-zoom a:hover { background:rgba(215,195,158,0.98)!important; }
-    .leaflet-control-attribution { font-size:8px!important; opacity:0.3; background:transparent!important; }
-    .leaflet-tooltip { background:rgba(196,174,136,0.97)!important; border:1px solid rgba(92,52,24,0.25)!important; border-radius:2px!important; box-shadow:0 3px 12px rgba(50,22,8,0.2)!important; font-family:var(--font-vintage)!important; font-style:italic; color:var(--brown)!important; padding:5px 10px!important; }
+    .modal-nav-btn:disabled { opacity:0.3; cursor:default; }
   </style>
 </head>
 <body>
-
-<div class="map-surround"></div>
-<div class="map-border"></div>
-<div class="corner corner-tl">✦</div><div class="corner corner-tr">✦</div>
-<div class="corner corner-bl">✦</div><div class="corner corner-br">✦</div>
-<div id="map"></div>
-<div id="map-grain"></div>
 
 <nav class="top-nav">
   <a href="index.html" class="nav-link">
@@ -329,429 +249,385 @@
   </a>
 </nav>
 
-<div class="cartouche">
-  <div class="cartouche-inner">
-    <span class="cartouche-text" id="cartouche-hint">Zoom in to explore · اضغط على الإمارة لرؤية رسائلها</span>
+<div id="explore-wrap">
+
+  <!-- MAP -->
+  <div id="map-section">
+    <div id="map"></div>
+    <div id="map-grain"></div>
+    <div id="selected-chip" onclick="clearEmirate()">
+      <span id="selected-chip-name"></span>
+      <span class="chip-x">✕</span>
+    </div>
+    <button id="map-toggle" onclick="toggleMap()">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      <span id="map-toggle-label">Hide Map · إخفاء الخريطة</span>
+    </button>
+  </div>
+
+  <!-- LETTERS -->
+  <div id="letters-section">
+    <div id="filter-bar">
+      <div id="emirate-tabs">
+        <button class="em-tab active" style="background:rgba(58,34,8,0.7);color:#fff;border-color:transparent;" onclick="selectEmirate(null,this)">All · الكل</button>
+        <button class="em-tab" style="--c:#8B5E3C" onclick="selectEmirate('Abu Dhabi',this)">Abu Dhabi · أبوظبي</button>
+        <button class="em-tab" onclick="selectEmirate('Dubai',this)">Dubai · دبي</button>
+        <button class="em-tab" onclick="selectEmirate('Sharjah',this)">Sharjah · الشارقة</button>
+        <button class="em-tab" onclick="selectEmirate('Ajman',this)">Ajman · عجمان</button>
+        <button class="em-tab" onclick="selectEmirate('Umm Al Quwain',this)">UAQ · أم القيوين</button>
+        <button class="em-tab" onclick="selectEmirate('Ras Al Khaimah',this)">RAK · رأس الخيمة</button>
+        <button class="em-tab" onclick="selectEmirate('Fujairah',this)">Fujairah · الفجيرة</button>
+      </div>
+      <div id="theme-tabs">
+        <button class="th-tab" onclick="selectTheme('I Miss',this)">I Miss · أفتقد</button>
+        <button class="th-tab" onclick="selectTheme('I Love',this)">I Love · أحب</button>
+        <button class="th-tab" onclick="selectTheme('I Long For',this)">I Long For · أشتاق</button>
+        <button class="th-tab" onclick="selectTheme('I Remember',this)">I Remember · أتذكر</button>
+      </div>
+      <div id="result-label">— letters —</div>
+    </div>
+    <div id="letters-grid"></div>
+    <div id="no-letters">No letters here yet · لا رسائل هنا بعد</div>
   </div>
 </div>
 
-<!-- Postcard modal -->
-<div id="pc-overlay">
-  <button class="pc-close" onclick="closePcModal()" title="Close">×</button>
-  <button class="pc-nav" id="pc-prev" onclick="pcNav(-1)">‹</button>
-
-  <div class="pc-scene">
-    <div class="pc-inner" id="pc-inner">
-      <!-- FRONT -->
-      <div class="pc-face pc-front" id="pc-front"></div>
-      <!-- BACK -->
-      <div class="pc-face pc-back" id="pc-back"></div>
-    </div>
-    <button class="pc-flip-btn" onclick="flipPc()">↩ Flip · اقلب</button>
+<!-- Letter Modal -->
+<div id="ltr-modal" onclick="if(event.target===this)closeLtrModal()">
+  <button id="ltr-modal-close" onclick="closeLtrModal()">✕</button>
+  <div id="ltr-modal-box"></div>
+  <div id="ltr-modal-nav">
+    <button class="modal-nav-btn" id="modal-prev" onclick="modalNav(-1)">‹ Prev</button>
+    <button class="modal-nav-btn" id="modal-next" onclick="modalNav(1)">Next ›</button>
   </div>
-
-  <button class="pc-nav" id="pc-next" onclick="pcNav(1)">›</button>
-  <div class="pc-counter" id="pc-counter"></div>
 </div>
 
 <script>
-function loadWall() { try { return JSON.parse(localStorage.getItem('ptoh_wall')||'[]'); } catch(e){ return []; } }
-const wallCards = loadWall();
+// ── Supabase ──
+const _sb = supabase.createClient(
+  'https://wyzkqhzekjpuhtinskou.supabase.co',
+  'sb_publishable_FyUsXFFI_gMgk6gQlRhMMg_Y0NB7cQE'
+);
 
-// ── Map ──
-const map = L.map('map', { center:[24.2,54.6], zoom:7, minZoom:4, maxZoom:15, scrollWheelZoom:true });
+// ── Emirate colours ──
+const EMIRATE_COLOR = {
+  'Abu Dhabi':'#8B5E3C','Dubai':'#B5372A','Sharjah':'#2E5FA3',
+  'Ajman':'#4A8047','Umm Al Quwain':'#7A4A8B','Ras Al Khaimah':'#3A6B8B','Fujairah':'#7A4A20'
+};
+const EMIRATE_DATA = [
+  { id:'Abu Dhabi',      ar:'أبوظبي',     lat:23.90,  lng:54.00 },
+  { id:'Dubai',          ar:'دبي',         lat:25.18,  lng:55.20 },
+  { id:'Sharjah',        ar:'الشارقة',    lat:25.36,  lng:55.50 },
+  { id:'Ajman',          ar:'عجمان',       lat:25.415, lng:55.545 },
+  { id:'Umm Al Quwain',  ar:'أم القيوين', lat:25.585, lng:55.60 },
+  { id:'Ras Al Khaimah', ar:'رأس الخيمة', lat:25.79,  lng:55.97 },
+  { id:'Fujairah',       ar:'الفجيرة',    lat:25.12,  lng:56.35 },
+];
+
+// ── Sample letters ──
+const SAMPLES = [
+  { id:'s0', from:'Nour',    to:'My old street',      emirate:'Dubai',           theme:'I Remember', message:'The smell of cardamom coffee on Friday mornings. The way the creek reflected the old dhows before everything changed around us.' },
+  { id:'s1', from:'Mariam',  to:'My old street',      emirate:'Sharjah',         theme:'I Long For',  message:'I left ten years ago and still dream about the corniche at sunset — the fountain, children chasing pigeons near the water.' },
+  { id:'s2', from:'Anonymous',to:'Home',              emirate:'Abu Dhabi',       theme:'I Love',      message:'Every Eid we walked from Khalidiyah to the corniche. The sea breeze. The sound of your stories. I still hear them.' },
+  { id:'s3', from:'خالد',   to:'السوق القديم',        emirate:'Dubai',           theme:'I Remember',  message:'رائحة الهيل والقهوة في الفجر — شيوخ يشربون الشاي قبل أن تأتي الحرارة. أنتِ لا تزالين وطناً.' },
+  { id:'s4', from:'Sara',    to:"Baba's fishing boat", emirate:'Ras Al Khaimah', theme:'I Love',      message:'You took me fishing every Thursday before school. The Gulf was calm, the world was quiet, and I felt completely safe.' },
+  { id:'s5', from:'Fatima',  to:'My classroom',       emirate:'Sharjah',         theme:'I Remember',  message:'Room 7, Al Qasimia school. The chalk smell, the ceiling fan, Mrs. Hind writing on the board. You shaped everything I am.' },
+  { id:'s6', from:'Yusuf',   to:'The creek at low tide',emirate:'Fujairah',     theme:'I Miss',      message:'Dibba before the hotels. Just the mountains, the sea, and fishermen untangling their nets. I miss that quietness so much.' },
+  { id:'s7', from:'Layla',   to:"Grandma's kitchen",  emirate:'Abu Dhabi',       theme:'I Long For',  message:'The smell of thareed on Fridays. She would start at dawn and by noon the whole building knew. I would give anything to eat there again.' },
+  { id:'s8', from:'Hassan',  to:'UAQ corniche',        emirate:'Umm Al Quwain',  theme:'I Miss',      message:'The smallest emirate with the biggest sky. I never appreciated you until I was gone. That quiet is something I chase everywhere now.' },
+  { id:'s9', from:'Omar',    to:'My first apartment',  emirate:'Ajman',          theme:'I Remember',  message:'Al Nuaimiyah, 2008. Twelve of us in a two bedroom. We were poor and did not know it. Those were the richest years.' },
+];
+
+let allLetters = [...SAMPLES];
+let filteredLetters = [...allLetters];
+let activeEmirate = null;
+let activeTheme = null;
+let modalIdx = 0;
+let mapExpanded = false;
+let mapCollapsed = false;
+
+// ── Load from Supabase ──
+(async () => {
+  const { data } = await _sb.from('letters').select('*').order('created_at',{ascending:false}).limit(200);
+  if (data && data.length) {
+    const dbLetters = data.map(r => ({
+      id: r.id, from: r.from||'Anonymous', to: r.to||'',
+      emirate: r.emirate||'', theme: r.theme||'',
+      message: r.message||'', sceneSrc: r.scene_src||'',
+      stampSrc: r.stamp_src||'', styleIdx: r.style_idx||0,
+      date: r.date||''
+    }));
+    const dbIds = new Set(dbLetters.map(l=>l.id));
+    const localOnly = JSON.parse(localStorage.getItem('ptoh_wall')||'[]')
+      .filter(c => !dbIds.has(c.id))
+      .map(c => ({id:c.id,from:c.from,to:c.to,emirate:c.emirate,theme:c.theme,message:c.message,sceneSrc:c.sceneSrc,stampSrc:c.stampSrc}));
+    allLetters = [...dbLetters, ...localOnly, ...SAMPLES];
+    applyFilters();
+    updateMapDots();
+  }
+  // Real-time
+  _sb.channel('explore-feed')
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'letters'}, payload => {
+      const r = payload.new;
+      allLetters = [{id:r.id,from:r.from,to:r.to,emirate:r.emirate,theme:r.theme,
+        message:r.message,sceneSrc:r.scene_src,stampSrc:r.stamp_src}, ...allLetters];
+      applyFilters(); updateMapDots();
+    }).subscribe();
+})();
+
+// ── MAP ──
+const map = L.map('map', { center:[24.5,54.8], zoom:7, minZoom:5, maxZoom:13, scrollWheelZoom:true, zoomControl:true });
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}',
   { attribution:'© Esri · National Geographic', maxZoom:16 }).addTo(map);
 
-// ── Emirate data ──
-const EMIRATE_DATA = [
-  { id:'Abu Dhabi',      ar:'أبوظبي',     lat:23.90,  lng:54.00, color:'#8B5E3C' },
-  { id:'Dubai',          ar:'دبي',         lat:25.18,  lng:55.20, color:'#B5372A' },
-  { id:'Sharjah',        ar:'الشارقة',    lat:25.36,  lng:55.50, color:'#2E5FA3' },
-  { id:'Ajman',          ar:'عجمان',       lat:25.415, lng:55.545,color:'#4A8047' },
-  { id:'Umm Al Quwain',  ar:'أم القيوين', lat:25.585, lng:55.60, color:'#7A4A8B' },
-  { id:'Ras Al Khaimah', ar:'رأس الخيمة', lat:25.79,  lng:55.97, color:'#3A6B8B' },
-  { id:'Fujairah',       ar:'الفجيرة',    lat:25.12,  lng:56.35, color:'#7A4A20' },
-];
-const EMIRATE_COLOR = {};
-EMIRATE_DATA.forEach(e => EMIRATE_COLOR[e.id] = e.color);
-const sampleCounts = {'Abu Dhabi':3,'Dubai':3,'Sharjah':2,'Ajman':1,'Umm Al Quwain':1,'Ras Al Khaimah':1,'Fujairah':1};
+// ── Kiosk touch fix: transform map drag for -90deg CSS rotation ──
+if (_isKiosk) {
+  map.dragging.disable();
+  let _dragging = false, _lastX = 0, _lastY = 0;
+  const mc = map.getContainer();
+  mc.addEventListener('touchstart', e => {
+    _dragging = true;
+    _lastX = e.touches[0].clientX;
+    _lastY = e.touches[0].clientY;
+    e.preventDefault();
+  }, { passive:false });
+  mc.addEventListener('touchmove', e => {
+    if (!_dragging) return;
+    const dx = e.touches[0].clientX - _lastX;
+    const dy = e.touches[0].clientY - _lastY;
+    _lastX = e.touches[0].clientX;
+    _lastY = e.touches[0].clientY;
+    // rotate delta +90deg to counteract -90deg page rotation
+    map.panBy([-dy, dx], { animate:false });
+    e.preventDefault();
+  }, { passive:false });
+  mc.addEventListener('touchend', () => { _dragging = false; });
 
-// ── Click-state for two-tap zoom→navigate ──
-const clickState = {};
-function handleLabelClick(id, lat, lng, zoomTo, navUrl) {
-  const now = Date.now();
-  const prev = clickState[id];
-  if (prev && now - prev < 2500) {
-    delete clickState[id];
-    window.location.href = navUrl;
+  // pinch zoom
+  let _pinchDist = 0;
+  mc.addEventListener('touchstart', e => {
+    if (e.touches.length === 2) {
+      _pinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    }
+  }, { passive:true });
+  mc.addEventListener('touchmove', e => {
+    if (e.touches.length === 2 && _pinchDist > 0) {
+      const newDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      if (Math.abs(newDist - _pinchDist) > 5) {
+        newDist > _pinchDist ? map.zoomIn(0.3) : map.zoomOut(0.3);
+        _pinchDist = newDist;
+      }
+    }
+  }, { passive:true });
+}
+
+// ── Emirate markers ──
+const dotMarkers = {};
+EMIRATE_DATA.forEach(em => {
+  const color = EMIRATE_COLOR[em.id];
+  const icon = L.divIcon({ className:'',
+    html:`<div class="em-label" style="color:${color};">${em.id}<span class="em-ar">${em.ar}</span><span class="em-cnt" id="ec-${em.id.replace(/\s/g,'_')}"></span></div>`,
+    iconAnchor:[55,22] });
+  L.marker([em.lat, em.lng], { icon, zIndexOffset:100 }).addTo(map)
+    .on('click', e => { L.DomEvent.stopPropagation(e); selectEmirateFromMap(em.id); });
+});
+
+function updateMapDots() {
+  EMIRATE_DATA.forEach(em => {
+    const count = allLetters.filter(l => l.emirate === em.id).length;
+    const el = document.getElementById('ec-' + em.id.replace(/\s/g,'_'));
+    if (el) el.textContent = count + ' letter' + (count!==1?'s':'');
+  });
+}
+updateMapDots();
+
+// ── Filter state ──
+function selectEmirateFromMap(emirateId) {
+  activeEmirate = emirateId;
+  // update tab buttons
+  document.querySelectorAll('.em-tab').forEach(b => {
+    const matches = b.textContent.startsWith(emirateId.split(' ')[0]);
+    b.classList.toggle('active', matches);
+    if (matches) { b.style.background = EMIRATE_COLOR[emirateId]; b.style.color='#fff'; b.style.borderColor='transparent'; }
+    else { b.style.background=''; b.style.color=''; b.style.borderColor=''; }
+  });
+  // show chip
+  const chip = document.getElementById('selected-chip');
+  document.getElementById('selected-chip-name').textContent = emirateId;
+  chip.classList.add('show');
+  applyFilters();
+  // scroll down to letters
+  setTimeout(() => { document.getElementById('letters-section').scrollTo({top:0,behavior:'smooth'}); }, 100);
+  collapseMap();
+}
+
+function selectEmirate(emirateId, btn) {
+  activeEmirate = emirateId;
+  document.querySelectorAll('.em-tab').forEach(b => {
+    b.classList.remove('active');
+    b.style.background=''; b.style.color=''; b.style.borderColor='';
+  });
+  btn.classList.add('active');
+  if (emirateId) {
+    btn.style.background = EMIRATE_COLOR[emirateId]||'rgba(58,34,8,0.7)';
+    btn.style.color = '#fff'; btn.style.borderColor = 'transparent';
+    const chip = document.getElementById('selected-chip');
+    document.getElementById('selected-chip-name').textContent = emirateId;
+    chip.classList.add('show');
+    // fly map to emirate
+    const em = EMIRATE_DATA.find(e=>e.id===emirateId);
+    if (em) map.flyTo([em.lat, em.lng], 9, {duration:0.8});
   } else {
-    clickState[id] = now;
-    map.flyTo([lat, lng], zoomTo, { duration: 1.0, easeLinearity: 0.5 });
+    btn.style.background='rgba(58,34,8,0.7)'; btn.style.color='#fff'; btn.style.borderColor='transparent';
+    document.getElementById('selected-chip').classList.remove('show');
+    map.flyTo([24.5,54.8], 7, {duration:0.8});
+  }
+  applyFilters();
+}
+
+function clearEmirate() {
+  activeEmirate = null;
+  document.querySelectorAll('.em-tab').forEach((b,i) => {
+    b.classList.remove('active'); b.style.background=''; b.style.color=''; b.style.borderColor='';
+    if (i===0) { b.classList.add('active'); b.style.background='rgba(58,34,8,0.7)'; b.style.color='#fff'; b.style.borderColor='transparent'; }
+  });
+  document.getElementById('selected-chip').classList.remove('show');
+  map.flyTo([24.5,54.8], 7, {duration:0.8});
+  applyFilters();
+}
+
+function selectTheme(theme, btn) {
+  if (activeTheme === theme) {
+    activeTheme = null;
+    btn.classList.remove('active');
+  } else {
+    activeTheme = theme;
+    document.querySelectorAll('.th-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  applyFilters();
+}
+
+function applyFilters() {
+  filteredLetters = allLetters.filter(l => {
+    if (activeEmirate && l.emirate !== activeEmirate) return false;
+    if (activeTheme && l.theme !== activeTheme) return false;
+    return true;
+  });
+  renderLetters();
+}
+
+function renderLetters() {
+  const grid = document.getElementById('letters-grid');
+  const none = document.getElementById('no-letters');
+  const label = document.getElementById('result-label');
+  label.textContent = filteredLetters.length + ' letter' + (filteredLetters.length!==1?'s · رسائل':' · رسالة');
+  if (!filteredLetters.length) { grid.innerHTML=''; none.style.display='block'; return; }
+  none.style.display='none';
+  const THEME_COLOR = {'I Miss':'#7A4A20','I Love':'#B5372A','I Long For':'#2E5FA3','I Remember':'#4A8047'};
+  grid.innerHTML = filteredLetters.map((l,i) => {
+    const isAr = /[؀-ۿ]/.test(l.message||'');
+    const tc = THEME_COLOR[l.theme] || 'rgba(58,34,8,0.4)';
+    const ec = EMIRATE_COLOR[l.emirate] || 'rgba(58,34,8,0.4)';
+    const msg = (l.message||'').slice(0,140) + ((l.message||'').length>140?'…':'');
+    return `<div class="ltr-card" style="border-left-color:${ec};" onclick="openLtrModal(${i})">
+      <div class="ltr-card-top">
+        <div class="ltr-card-to">To: ${l.to||'—'}</div>
+        ${l.theme ? `<div class="ltr-card-theme" style="color:${tc};border-color:${tc};">${l.theme}</div>` : ''}
+      </div>
+      <div class="ltr-card-msg ${isAr?'ar':''}">${msg}</div>
+      <div class="ltr-card-footer">
+        <div>
+          <div class="ltr-card-from">${l.from||'Anonymous'}</div>
+          ${l.emirate ? `<div class="ltr-card-loc">${l.emirate}</div>` : ''}
+        </div>
+        ${l.sceneSrc ? `<img class="ltr-card-photo" src="${l.sceneSrc}" alt="">` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Modal ──
+function openLtrModal(idx) {
+  modalIdx = idx;
+  renderModal();
+  document.getElementById('ltr-modal').classList.add('open');
+}
+function closeLtrModal() { document.getElementById('ltr-modal').classList.remove('open'); }
+function modalNav(dir) {
+  modalIdx = Math.max(0, Math.min(filteredLetters.length-1, modalIdx+dir));
+  renderModal();
+}
+function renderModal() {
+  const l = filteredLetters[modalIdx];
+  if (!l) return;
+  const isAr = /[؀-ۿ]/.test(l.message||'');
+  const ec = EMIRATE_COLOR[l.emirate]||'#8B5E3C';
+  const THEME_COLOR = {'I Miss':'#7A4A20','I Love':'#B5372A','I Long For':'#2E5FA3','I Remember':'#4A8047'};
+  const tc = THEME_COLOR[l.theme]||'#8B5E3C';
+  document.getElementById('ltr-modal-box').innerHTML = `
+    ${l.sceneSrc ? `<div style="aspect-ratio:3/2;background:linear-gradient(155deg,#7A4825,#C4956A);position:relative;border-radius:4px 4px 0 0;overflow:hidden;">
+      <img src="${l.sceneSrc}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">
+      <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.4),transparent);"></div>
+    </div>` : ''}
+    <div style="padding:1.4rem 1.5rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.8rem;">
+        <div style="font-size:0.48rem;letter-spacing:0.12em;text-transform:uppercase;color:rgba(58,34,8,0.4);">POST CARD · بطاقة بريدية</div>
+        ${l.theme ? `<div style="font-size:0.44rem;color:${tc};border:1px solid ${tc};padding:0.1rem 0.4rem;border-radius:1px;">${l.theme}</div>` : ''}
+      </div>
+      <div style="font-family:'IM Fell English',Georgia,serif;font-style:italic;font-size:1.05rem;line-height:1.75;color:#3A2208;margin-bottom:1.2rem;${isAr?'direction:rtl;text-align:right;font-family:Massira,serif;':''}">${l.message||''}</div>
+      <div style="border-top:1px solid rgba(92,52,24,0.1);padding-top:0.8rem;display:flex;justify-content:space-between;align-items:flex-end;">
+        <div>
+          <div style="font-size:0.44rem;letter-spacing:0.1em;text-transform:uppercase;color:rgba(58,34,8,0.35);margin-bottom:0.2rem;">To · إلى</div>
+          <div style="font-size:0.75rem;color:#3A2208;">${l.to||'—'}</div>
+          <div style="font-size:0.44rem;letter-spacing:0.1em;text-transform:uppercase;color:rgba(58,34,8,0.35);margin-top:0.5rem;margin-bottom:0.2rem;">From · من</div>
+          <div style="font-size:0.75rem;color:#3A2208;">${l.from||'Anonymous'}</div>
+          ${l.emirate ? `<div style="font-size:0.55rem;color:${ec};margin-top:0.3rem;">${l.emirate}</div>` : ''}
+        </div>
+        ${l.stampSrc ? `<img src="${l.stampSrc}" style="width:52px;height:52px;object-fit:contain;">` : ''}
+      </div>
+    </div>
+  `;
+  document.getElementById('modal-prev').disabled = modalIdx === 0;
+  document.getElementById('modal-next').disabled = modalIdx === filteredLetters.length-1;
+}
+
+// ── Map expand/collapse ──
+function toggleMap() {
+  if (mapExpanded) {
+    // back to normal
+    mapExpanded = false; mapCollapsed = false;
+    document.getElementById('map-section').classList.remove('expanded','collapsed');
+    document.getElementById('map-toggle-label').textContent = 'Hide Map · إخفاء الخريطة';
+    document.getElementById('map-toggle').querySelector('svg polyline').setAttribute('points','6 9 12 15 18 9');
+  } else if (mapCollapsed) {
+    // expand from collapsed
+    mapCollapsed = false; mapExpanded = true;
+    document.getElementById('map-section').classList.remove('collapsed');
+    document.getElementById('map-section').classList.add('expanded');
+    document.getElementById('map-toggle-label').textContent = 'Show Letters · أظهر الرسائل';
+    document.getElementById('map-toggle').querySelector('svg polyline').setAttribute('points','18 15 12 9 6 15');
+  } else {
+    // collapse
+    mapCollapsed = true;
+    document.getElementById('map-section').classList.add('collapsed');
+    document.getElementById('map-toggle-label').textContent = 'Show Map · أظهر الخريطة';
+    document.getElementById('map-toggle').querySelector('svg polyline').setAttribute('points','6 15 12 9 18 15');
+  }
+  setTimeout(() => map.invalidateSize(), 350);
+}
+function collapseMap() {
+  if (!mapCollapsed) {
+    mapCollapsed = true; mapExpanded = false;
+    document.getElementById('map-section').classList.add('collapsed');
+    document.getElementById('map-section').classList.remove('expanded');
+    document.getElementById('map-toggle-label').textContent = 'Show Map · أظهر الخريطة';
+    document.getElementById('map-toggle').querySelector('svg polyline').setAttribute('points','6 15 12 9 18 15');
+    setTimeout(() => map.invalidateSize(), 350);
   }
 }
 
-// ── Emirate labels ──
-EMIRATE_DATA.forEach(em => {
-  const total = wallCards.filter(c=>c.emirate===em.id).length + (sampleCounts[em.id]||0);
-  const icon = L.divIcon({ className:'',
-    html:`<div class="em-label" style="color:${em.color};">${em.id}<span class="em-ar">${em.ar}</span><span class="em-cnt">${total} letter${total!==1?'s':''} · tap again for letters</span></div>`,
-    iconAnchor:[55,22] });
-  L.marker([em.lat,em.lng],{icon,zIndexOffset:100}).addTo(map)
-    .on('click', (e) => {
-      L.DomEvent.stopPropagation(e);
-      handleLabelClick('em_'+em.id, em.lat, em.lng, 10, 'read.html?emirate='+encodeURIComponent(em.id));
-    });
-});
-
-// ── Geographic / international labels ──
-const GEO_LABELS = [
-  { name:'Arabian Gulf',      lat:26.6,  lng:52.2,  minZoom:5, cls:'sea-label', size:'0.92rem' },
-  { name:'Gulf of Oman',      lat:23.5,  lng:58.8,  minZoom:5, cls:'sea-label', size:'0.86rem' },
-  { name:'Arabian Sea',       lat:19.0,  lng:63.0,  minZoom:4, cls:'sea-label', size:'1.0rem' },
-  { name:'Strait of Hormuz',  lat:26.5,  lng:56.7,  minZoom:6, cls:'sea-label', size:'0.68rem' },
-  { name:'Red Sea',           lat:22.0,  lng:37.5,  minZoom:4, cls:'sea-label', size:'0.88rem' },
-  { name:'Gulf of Aden',      lat:12.0,  lng:47.0,  minZoom:4, cls:'sea-label', size:'0.78rem' },
-  { name:'SAUDI ARABIA',      lat:23.6,  lng:44.5,  minZoom:4, cls:'geo-label', size:'1.1rem' },
-  { name:'IRAN',              lat:32.0,  lng:53.7,  minZoom:4, cls:'geo-label', size:'1.0rem' },
-  { name:'OMAN',              lat:21.5,  lng:57.5,  minZoom:4, cls:'geo-label', size:'0.92rem' },
-  { name:'YEMEN',             lat:15.5,  lng:47.5,  minZoom:4, cls:'geo-label', size:'0.88rem' },
-  { name:'PAKISTAN',          lat:30.0,  lng:70.0,  minZoom:4, cls:'geo-label', size:'0.88rem' },
-  { name:'INDIA',             lat:22.0,  lng:79.0,  minZoom:4, cls:'geo-label', size:'1.0rem' },
-  { name:'IRAQ',              lat:33.0,  lng:44.0,  minZoom:4, cls:'geo-label', size:'0.88rem' },
-  { name:'KUWAIT',            lat:29.5,  lng:47.5,  minZoom:5, cls:'geo-label', size:'0.78rem' },
-  { name:'QATAR',             lat:25.4,  lng:51.3,  minZoom:5, cls:'geo-label', size:'0.72rem' },
-  { name:'BAHRAIN',           lat:26.2,  lng:50.55, minZoom:6, cls:'geo-label', size:'0.65rem' },
-  { name:'JORDAN',            lat:31.0,  lng:36.0,  minZoom:5, cls:'geo-label', size:'0.78rem' },
-  { name:'Riyadh',            lat:24.69, lng:46.72, minZoom:6, cls:'city-label', size:'0.72rem' },
-  { name:'Muscat',            lat:23.61, lng:58.59, minZoom:6, cls:'city-label', size:'0.72rem' },
-  { name:'Doha',              lat:25.27, lng:51.53, minZoom:6, cls:'city-label', size:'0.70rem' },
-  { name:'Tehran',            lat:35.69, lng:51.39, minZoom:6, cls:'city-label', size:'0.72rem' },
-  { name:'Karachi',           lat:24.86, lng:67.01, minZoom:6, cls:'city-label', size:'0.70rem' },
-  { name:'Kuwait City',       lat:29.37, lng:47.97, minZoom:6, cls:'city-label', size:'0.68rem' },
-  { name:'Bandar Abbas',      lat:27.19, lng:56.27, minZoom:7, cls:'city-label', size:'0.62rem' },
-  { name:'Salalah',           lat:17.02, lng:54.09, minZoom:7, cls:'city-label', size:'0.62rem' },
-  { name:'Manama',            lat:26.21, lng:50.59, minZoom:7, cls:'city-label', size:'0.65rem' },
-];
-
-// ── UAE city labels (zoom 8 — city level only, not neighborhoods) ──
-const UAE_CITY_LABELS = [
-  { name:'Al Ain',          lat:24.207, lng:55.745, minZoom:8, size:'0.80rem' },
-  { name:'Ruwais',          lat:24.120, lng:52.726, minZoom:8, size:'0.72rem' },
-  { name:'Jebel Ali',       lat:24.998, lng:55.063, minZoom:8, size:'0.72rem' },
-  { name:'Hatta',           lat:24.800, lng:56.117, minZoom:8, size:'0.72rem' },
-  { name:'Liwa Oasis',      lat:23.117, lng:53.633, minZoom:8, size:'0.70rem' },
-  { name:'Madinat Zayed',   lat:23.691, lng:53.707, minZoom:8, size:'0.68rem' },
-  { name:'Mirfa',           lat:24.087, lng:53.352, minZoom:8, size:'0.68rem' },
-  { name:'Ghayathi',        lat:23.825, lng:52.819, minZoom:8, size:'0.68rem' },
-  { name:'Sir Bani Yas',    lat:24.322, lng:52.566, minZoom:8, size:'0.68rem' },
-  { name:'Baniyas',         lat:24.319, lng:54.639, minZoom:8, size:'0.65rem' },
-  { name:'Sweihan',         lat:24.394, lng:55.329, minZoom:8, size:'0.65rem' },
-  { name:'Falaj Al Mualla', lat:25.487, lng:55.823, minZoom:8, size:'0.65rem' },
-  { name:'Sila',            lat:24.083, lng:51.583, minZoom:8, size:'0.62rem' },
-  { name:'Ghuweifat',       lat:23.833, lng:51.500, minZoom:8, size:'0.62rem' },
-  { name:'Delma Island',    lat:24.520, lng:52.337, minZoom:9, size:'0.62rem' },
-  { name:'Masfout',         lat:24.953, lng:56.134, minZoom:9, size:'0.60rem' },
-  { name:'Al Wathba',       lat:24.327, lng:54.700, minZoom:9, size:'0.60rem' },
-];
-
-// ── Neighborhoods (bilingual, interactive) ──
-const NEIGHBORHOODS = [
-  // Abu Dhabi
-  { name:'Al Khalidiyah',   ar:'الخالدية',         lat:24.458, lng:54.346, emirate:'Abu Dhabi' },
-  { name:'Al Markaziyah',   ar:'المركزية',          lat:24.483, lng:54.363, emirate:'Abu Dhabi' },
-  { name:'Corniche Road',   ar:'طريق الكورنيش',    lat:24.462, lng:54.333, emirate:'Abu Dhabi' },
-  { name:'Al Mushrif',      ar:'المشرف',             lat:24.476, lng:54.394, emirate:'Abu Dhabi' },
-  { name:'Al Bateen',       ar:'البطين',             lat:24.452, lng:54.337, emirate:'Abu Dhabi' },
-  { name:'Al Karamah',      ar:'الكرامة',            lat:24.448, lng:54.361, emirate:'Abu Dhabi' },
-  { name:'Al Muroor',       ar:'المرور',             lat:24.468, lng:54.371, emirate:'Abu Dhabi' },
-  { name:'Al Nahyan',       ar:'النهيان',            lat:24.455, lng:54.380, emirate:'Abu Dhabi' },
-  { name:'Al Ain Downtown', ar:'وسط مدينة العين',   lat:24.205, lng:55.745, emirate:'Abu Dhabi' },
-  { name:'Al Ain Oasis',    ar:'واحة العين',         lat:24.214, lng:55.746, emirate:'Abu Dhabi' },
-  { name:'Al Hili',         ar:'الهيلي',             lat:24.241, lng:55.780, emirate:'Abu Dhabi' },
-  { name:'Mussafah',        ar:'مصفح',              lat:24.329, lng:54.505, emirate:'Abu Dhabi' },
-  { name:'Yas Island',      ar:'جزيرة ياس',         lat:24.479, lng:54.601, emirate:'Abu Dhabi' },
-  { name:'Saadiyat Island', ar:'جزيرة السعديات',    lat:24.537, lng:54.432, emirate:'Abu Dhabi' },
-  { name:'Al Reem Island',  ar:'جزيرة الريم',       lat:24.499, lng:54.404, emirate:'Abu Dhabi' },
-  { name:'Khalifa City A',  ar:'مدينة خليفة أ',     lat:24.425, lng:54.529, emirate:'Abu Dhabi' },
-  // Dubai
-  { name:'Deira',            ar:'ديرة',              lat:25.275, lng:55.327, emirate:'Dubai' },
-  { name:'Bur Dubai',        ar:'بر دبي',            lat:25.247, lng:55.293, emirate:'Dubai' },
-  { name:'Karama',           ar:'الكرامة',            lat:25.239, lng:55.302, emirate:'Dubai' },
-  { name:'Jumeirah',         ar:'جميرا',              lat:25.198, lng:55.236, emirate:'Dubai' },
-  { name:'Downtown Dubai',   ar:'وسط دبي',           lat:25.197, lng:55.279, emirate:'Dubai' },
-  { name:'Dubai Marina',     ar:'مرسى دبي',          lat:25.077, lng:55.133, emirate:'Dubai' },
-  { name:'Al Barsha',        ar:'البرشاء',            lat:25.107, lng:55.201, emirate:'Dubai' },
-  { name:'The Palm Jumeirah',ar:'نخلة جميرا',        lat:25.112, lng:55.139, emirate:'Dubai' },
-  { name:'Business Bay',     ar:'الخليج التجاري',   lat:25.186, lng:55.265, emirate:'Dubai' },
-  { name:'Al Garhoud',       ar:'الغرهود',            lat:25.243, lng:55.352, emirate:'Dubai' },
-  { name:'Mirdif',           ar:'مردف',              lat:25.224, lng:55.416, emirate:'Dubai' },
-  { name:'Al Quoz',          ar:'القوز',              lat:25.139, lng:55.228, emirate:'Dubai' },
-  { name:'Al Mamzar',        ar:'الممزر',             lat:25.291, lng:55.355, emirate:'Dubai' },
-  { name:'Oud Metha',        ar:'عود ميثاء',         lat:25.230, lng:55.310, emirate:'Dubai' },
-  { name:'Al Satwa',         ar:'السطوة',             lat:25.217, lng:55.264, emirate:'Dubai' },
-  { name:'Al Wasl',          ar:'الوصل',              lat:25.182, lng:55.256, emirate:'Dubai' },
-  { name:'Jumeirah Lake Towers', ar:'أبراج بحيرات جميرا', lat:25.068, lng:55.149, emirate:'Dubai' },
-  { name:'Nad Al Sheba',     ar:'ند الشبا',          lat:25.157, lng:55.336, emirate:'Dubai' },
-  { name:'International City', ar:'المدينة الدولية', lat:25.166, lng:55.412, emirate:'Dubai' },
-  // Sharjah
-  { name:'Al Majaz',         ar:'الماجز',             lat:25.344, lng:55.391, emirate:'Sharjah' },
-  { name:'Al Qasimia',       ar:'القاسمية',           lat:25.365, lng:55.411, emirate:'Sharjah' },
-  { name:'Al Nahda',         ar:'النهضة',             lat:25.313, lng:55.417, emirate:'Sharjah' },
-  { name:'Muwaileh',         ar:'مويلح',              lat:25.323, lng:55.453, emirate:'Sharjah' },
-  { name:'Al Taawun',        ar:'التعاون',            lat:25.337, lng:55.430, emirate:'Sharjah' },
-  { name:'Al Zahra',         ar:'الزهراء',            lat:25.350, lng:55.382, emirate:'Sharjah' },
-  { name:'Al Khan',          ar:'الخان',              lat:25.326, lng:55.395, emirate:'Sharjah' },
-  { name:'Khor Fakkan',      ar:'خورفكان',            lat:25.341, lng:56.353, emirate:'Sharjah' },
-  // Ajman
-  { name:'Al Nuaimiyah',     ar:'النعيمية',           lat:25.392, lng:55.471, emirate:'Ajman' },
-  { name:'Al Rashidiyah',    ar:'الراشدية',           lat:25.408, lng:55.467, emirate:'Ajman' },
-  { name:'Al Jurf',          ar:'الجرف',              lat:25.376, lng:55.444, emirate:'Ajman' },
-  { name:'Al Rawda',         ar:'الروضة',             lat:25.403, lng:55.484, emirate:'Ajman' },
-  // UAQ
-  { name:'UAQ City Centre',  ar:'وسط أم القيوين',    lat:25.565, lng:55.555, emirate:'Umm Al Quwain' },
-  { name:'Al Raas',          ar:'الراس',              lat:25.560, lng:55.547, emirate:'Umm Al Quwain' },
-  { name:'Al Salamah',       ar:'السلامة',            lat:25.579, lng:55.574, emirate:'Umm Al Quwain' },
-  // RAK
-  { name:'Al Nakheel',       ar:'النخيل',             lat:25.795, lng:55.958, emirate:'Ras Al Khaimah' },
-  { name:'Al Hamra',         ar:'الحمراء',            lat:25.676, lng:55.763, emirate:'Ras Al Khaimah' },
-  { name:'Al Rams',          ar:'الرمس',              lat:25.897, lng:56.026, emirate:'Ras Al Khaimah' },
-  { name:'Mina Al Arab',     ar:'ميناء العرب',        lat:25.778, lng:55.924, emirate:'Ras Al Khaimah' },
-  { name:'Khatt',            ar:'خت',                lat:25.704, lng:56.025, emirate:'Ras Al Khaimah' },
-  { name:'Al Marjan Island', ar:'جزيرة المرجان',     lat:25.635, lng:55.744, emirate:'Ras Al Khaimah' },
-  // Fujairah
-  { name:'Fujairah City',    ar:'مدينة الفجيرة',     lat:25.128, lng:56.326, emirate:'Fujairah' },
-  { name:'Dibba Al Fujairah',ar:'دبا الفجيرة',       lat:25.579, lng:56.261, emirate:'Fujairah' },
-  { name:'Al Aqah',          ar:'العقة',              lat:25.472, lng:56.352, emirate:'Fujairah' },
-  { name:'Masafi',           ar:'مصافي',              lat:25.227, lng:56.132, emirate:'Fujairah' },
-  { name:'Kalba',            ar:'كلباء',              lat:25.016, lng:56.353, emirate:'Fujairah' },
-  { name:'Al Faseel',        ar:'الفصيل',             lat:25.156, lng:56.349, emirate:'Fujairah' },
-];
-
-// ── Letter data ──
-const LETTERS = [
-  { id:0, from:'Nour',    to:'My old street',         neighborhood:'Bur Dubai',         emirate:'Dubai',           theme:'I Remember', styleIdx:0,
-    message:'The smell of cardamom coffee on Friday mornings. The way the creek reflected the old dhows before everything changed around us.' },
-  { id:1, from:'Mariam',  to:'My old street',          neighborhood:'Al Majaz',           emirate:'Sharjah',         theme:'I Long For',  styleIdx:1,
-    message:'I left ten years ago and still dream about the corniche at sunset — the fountain, children chasing pigeons near the water.' },
-  { id:2, from:'Anonymous', to:'Home',                 neighborhood:'Al Khalidiyah',      emirate:'Abu Dhabi',       theme:'I Love',      styleIdx:0,
-    message:'Every Eid we walked from Khalidiyah to the corniche. The sea breeze. The sound of your stories. I still hear them.' },
-  { id:3, from:'خالد',   to:'السوق القديم',            neighborhood:'Deira',              emirate:'Dubai',           theme:'I Remember',  styleIdx:3,
-    message:'رائحة الهيل والقهوة في الفجر — شيوخ يشربون الشاي قبل أن تأتي الحرارة. أنتِ لا تزالين وطناً.' },
-  { id:4, from:'Sara',    to:'Baba\'s fishing boat',   neighborhood:'Al Rams',            emirate:'Ras Al Khaimah',  theme:'I Love',      styleIdx:2,
-    message:'You took me fishing every Thursday before school. The Gulf was calm, the world was quiet, and I felt completely safe.' },
-  { id:5, from:'Fatima',  to:'My classroom',           neighborhood:'Al Qasimia',         emirate:'Sharjah',         theme:'I Remember',  styleIdx:0,
-    message:'Room 7, Al Qasimia school. The chalk smell, the ceiling fan, Mrs. Hind writing on the board. You shaped everything I am.' },
-  { id:6, from:'Yusuf',   to:'The creek at low tide',  neighborhood:'Dibba Al Fujairah',  emirate:'Fujairah',        theme:'I Miss',      styleIdx:1,
-    message:'Dibba before the hotels. Just the mountains, the sea, and fishermen untangling their nets. I miss that quietness so much.' },
-  { id:7, from:'Layla',   to:'Grandma\'s kitchen',     neighborhood:'Al Mushrif',         emirate:'Abu Dhabi',       theme:'I Long For',  styleIdx:0,
-    message:'The smell of thareed on Fridays. She would start at dawn and by noon the whole building knew. I would give anything to eat there again.' },
-  { id:8, from:'Hassan',  to:'UAQ corniche',           neighborhood:'UAQ City Centre',    emirate:'Umm Al Quwain',   theme:'I Miss',      styleIdx:1,
-    message:'The smallest emirate with the biggest sky. I never appreciated you until I was gone. That quiet is something I chase everywhere now.' },
-  { id:9, from:'Omar',    to:'My first apartment',     neighborhood:'Al Nuaimiyah',       emirate:'Ajman',           theme:'I Remember',  styleIdx:0,
-    message:'Al Nuaimiyah, 2008. Twelve of us in a two bedroom. We were poor and did not know it. Those were the richest years.' },
-  { id:10, from:'ريم',   to:'مطبخ ستي',               neighborhood:'Al Reem Island',     emirate:'Abu Dhabi',       theme:'I Long For',  styleIdx:4,
-    message:'رائحة الثريد كل جمعة. كانت تبدأ من الفجر وبحلول الظهر يعرف كل المبنى. أعطي أي شيء لآكل هناك مرة أخرى.' },
-  { id:11, from:'Khalid', to:'Burj Khalifa view',      neighborhood:'Downtown Dubai',     emirate:'Dubai',           theme:'I Remember',  styleIdx:2,
-    message:'We used to watch the tower being built from our flat. Now I watch it on postcards from halfway around the world.' },
-  { id:12, from:'Sara',   to:'Al Hamra Village',       neighborhood:'Al Hamra',           emirate:'Ras Al Khaimah',  theme:'I Long For',  styleIdx:1,
-    message:'Old Al Hamra, the abandoned village. Walking through it feels like reading someone else\'s diary.' },
-  { id:13, from:'Fatima', to:'University City',        neighborhood:'Al Taawun',          emirate:'Sharjah',         theme:'I Remember',  styleIdx:0,
-    message:'Every morning from University City, I could see the Sharjah skyline. Four years of sunrises I took for granted.' },
-  { id:14, from:'Omar',   to:'Ajman Creek',            neighborhood:'Al Jurf',            emirate:'Ajman',           theme:'I Remember',  styleIdx:3,
-    message:'My grandfather\'s dhow workshop was near the creek. The sound of wood being shaped. I can still smell the sawdust.' },
-];
-
-// Add wall cards to letters list
-wallCards.forEach((c, i) => {
-  LETTERS.push({
-    id: 100 + i, from: c.from||'Anonymous', to: c.to||'',
-    neighborhood: c.neighborhood||'', emirate: c.emirate||'',
-    theme: c.theme||'', styleIdx: c.styleIdx||0,
-    message: c.message||'', sceneSrc: c.sceneSrc||'', stampSrc: c.stampSrc||'',
-  });
-});
-
-// Dot positions
-const DOTS = LETTERS.map(l => {
-  const nb = NEIGHBORHOODS.find(n => n.name === l.neighborhood);
-  if (!nb) return null;
-  return { lat: nb.lat + (Math.random()-0.5)*0.003, lng: nb.lng + (Math.random()-0.5)*0.003, letter: l };
-}).filter(Boolean);
-
-// ── Build geo/city label groups ──
-const allGeoItems = [
-  ...GEO_LABELS,
-  ...UAE_CITY_LABELS.map(c => ({ ...c, cls:'city-label' })),
-];
-const labelGroups = {};
-allGeoItems.forEach(c => {
-  const key = c.minZoom;
-  if (!labelGroups[key]) labelGroups[key] = L.layerGroup();
-  const icon = L.divIcon({ className:'',
-    html:`<div class="${c.cls}" style="font-size:${c.size}">${c.name}</div>`, iconAnchor:[0,8] });
-  labelGroups[key].addLayer(L.marker([c.lat,c.lng],{icon,interactive:false,keyboard:false}));
-});
-
-// ── Neighborhood label group (zoom 10+) ──
-const nbGroup = L.layerGroup();
-NEIGHBORHOODS.forEach(nb => {
-  const color = EMIRATE_COLOR[nb.emirate] || '#3A2208';
-  const icon = L.divIcon({ className:'',
-    html:`<div class="nb-label" style="color:${color};"
-      onclick="event.stopPropagation();handleLabelClick('nb_${encodeURIComponent(nb.name)}',${nb.lat},${nb.lng},13,'read.html?neighborhood=${encodeURIComponent(nb.name)}&emirate=${encodeURIComponent(nb.emirate)}')"
-      >${nb.name}<span class="nb-ar">${nb.ar}</span></div>`,
-    iconAnchor:[0,8] });
-  nbGroup.addLayer(L.marker([nb.lat,nb.lng],{icon,interactive:true,keyboard:false}));
-});
-
-
-// ── Dot layer (zoom 9+) — circles only, hover preview ──
-const dotLayer = L.layerGroup();
-DOTS.forEach((d, idx) => {
-  const color = EMIRATE_COLOR[d.letter.emirate] || '#8B5E3C';
-  const l = d.letter;
-  const preview = (l.message||'').slice(0, 90) + ((l.message||'').length > 90 ? '…' : '');
-  const nb = NEIGHBORHOODS.find(n => n.name === l.neighborhood);
-  const locLine = [l.neighborhood, nb ? nb.ar : ''].filter(Boolean).join(' · ');
-
-  const circle = L.circleMarker([d.lat, d.lng], {
-    radius: 7, fillColor: color, fillOpacity: 0.88,
-    color: 'rgba(255,255,255,0.9)', weight: 2,
-  });
-  circle.bindTooltip(
-    `<div class="dot-tt-inner">
-       <div class="dot-tt-from">${l.from}</div>
-       <div class="dot-tt-loc">${locLine}</div>
-     </div>`,
-    { direction: 'top', opacity: 1, className: 'dot-tt', offset: [0, -4] }
-  );
-  circle.on('click', (e) => { L.DomEvent.stopPropagation(e); openPcModal(idx); });
-  dotLayer.addLayer(circle);
-});
-
-// ── Zoom visibility ──
-function updateLayers() {
-  const z = map.getZoom();
-  Object.keys(labelGroups).forEach(mz => {
-    const g = labelGroups[mz];
-    z >= parseInt(mz) ? (!map.hasLayer(g) && map.addLayer(g)) : (map.hasLayer(g) && map.removeLayer(g));
-  });
-  z >= 10 ? (!map.hasLayer(nbGroup) && map.addLayer(nbGroup)) : (map.hasLayer(nbGroup) && map.removeLayer(nbGroup));
-  z >= 9  ? (!map.hasLayer(dotLayer) && map.addLayer(dotLayer)) : (map.hasLayer(dotLayer) && map.removeLayer(dotLayer));
-  const hint = document.getElementById('cartouche-hint');
-  if (z >= 10) hint.textContent = 'Click a neighborhood name to filter · أو اضغط على نقطة لقراءة الرسالة';
-  else if (z >= 9) hint.textContent = 'Zoom in to see neighborhoods · اضغط على نقطة لقراءة الرسالة';
-  else hint.textContent = 'Zoom in to explore · اضغط على الإمارة لرؤية رسائلها';
-}
-map.on('zoomend', updateLayers);
-updateLayers();
-
-// ── Paper styles ──
-const PAPER_CLASSES = ['pf-airmail','pf-cream','pf-blue','pf-kraft','pf-ivory'];
-const PAPER_BG      = ['#FAF3E2',   '#F8F2E0', '#EBF3FF','#E8D9B8', '#FFFEF5'];
-const THEME_COLORS  = { 'I Miss':'#7A4A20','I Love':'#B5372A','I Long For':'#2E5FA3','I Remember':'#4A8047',''  :'#8B5E3C' };
-
-// ── Postcard modal state ──
-let pcCurrentIdx = 0;
-let pcFlipped = false;
-let pcVisibleDots = [];
-
-function openPcModal(dotIdx) {
-  pcVisibleDots = DOTS.map((d,i)=>i); // all dots
-  pcCurrentIdx = pcVisibleDots.indexOf(dotIdx);
-  if (pcCurrentIdx < 0) pcCurrentIdx = 0;
-  pcFlipped = false;
-  renderPcCard();
-  document.getElementById('pc-overlay').classList.add('open');
-}
-function closePcModal() {
-  document.getElementById('pc-overlay').classList.remove('open');
-}
-function pcNav(dir) {
-  pcCurrentIdx = Math.max(0, Math.min(pcVisibleDots.length-1, pcCurrentIdx+dir));
-  pcFlipped = false;
-  document.getElementById('pc-inner').classList.remove('flipped');
-  renderPcCard();
-}
-function flipPc() {
-  pcFlipped = !pcFlipped;
-  document.getElementById('pc-inner').classList.toggle('flipped', pcFlipped);
-}
-function renderPcCard() {
-  const dotIdx = pcVisibleDots[pcCurrentIdx];
-  const d = DOTS[dotIdx];
-  if (!d) return;
-  const l = d.letter;
-  const sIdx = l.styleIdx || 0;
-  const bg = PAPER_BG[sIdx];
-  const pc = PAPER_CLASSES[sIdx];
-  const isAr = /[\u0600-\u06FF]/.test(l.message||'');
-  const themeColor = THEME_COLORS[l.theme] || '#8B5E3C';
-  const emColor = EMIRATE_COLOR[l.emirate] || '#8B5E3C';
-  const nb = NEIGHBORHOODS.find(n => n.name === l.neighborhood);
-
-  // ── Front ──
-  document.getElementById('pc-front').innerHTML = `
-    <div class="pc-front-wrap ${pc}" style="background:${bg};">
-      <div class="pc-front-header">
-        <span class="pc-front-header-text">Post Card · بطاقة بريدية</span>
-        ${l.theme ? `<span class="pc-front-header-text" style="color:${themeColor};">${l.theme}</span>` : ''}
-      </div>
-      <div class="pc-front-body">
-        <div class="pc-msg-area">
-          <p class="pc-msg-text ${isAr?'ar':''}">${l.message||''}</p>
-        </div>
-        <div class="pc-front-divider"></div>
-        <div class="pc-addr-area">
-          <div class="pc-stamp-box">${l.stampSrc ? `<img src="${l.stampSrc}" style="width:100%;height:100%;object-fit:cover;">` : 'STAMP'}</div>
-          <div class="pc-addr-fields">
-            <div>
-              <div class="pc-addr-label">To · إلى</div>
-              <div class="pc-addr-value">${l.to||'—'}</div>
-            </div>
-            <div>
-              <div class="pc-addr-label">From · من</div>
-              <div class="pc-addr-value">${l.from||'Anonymous'}</div>
-            </div>
-            <div>
-              <div class="pc-addr-label">Location · الموقع</div>
-              <div class="pc-addr-value" style="color:${emColor};font-size:0.7rem;">${l.neighborhood ? l.neighborhood+' · '+(nb?nb.ar:'') : l.emirate}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>`;
-
-  // ── Back ──
-  const hasPhoto = !!l.sceneSrc;
-  document.getElementById('pc-back').innerHTML = hasPhoto
-    ? `<div class="pc-back-wrap"><img class="pc-back-photo" src="${l.sceneSrc}" alt=""></div>`
-    : `<div class="pc-back-wrap"><div class="pc-back-no-photo">
-        <div class="pc-back-location">
-          <div class="pc-back-em" style="color:${emColor};">${l.emirate}</div>
-          <div class="pc-back-nb">${l.neighborhood}${nb?'  ·  '+nb.ar:''}</div>
-        </div>
-      </div></div>`;
-
-  // ── Counter + nav ──
-  document.getElementById('pc-counter').textContent = (pcCurrentIdx+1) + ' / ' + pcVisibleDots.length;
-  document.getElementById('pc-prev').disabled = pcCurrentIdx === 0;
-  document.getElementById('pc-next').disabled = pcCurrentIdx === pcVisibleDots.length-1;
-}
-
-// Close on overlay click
-document.getElementById('pc-overlay').addEventListener('click', function(e) {
-  if (e.target === this) closePcModal();
-});
-// Keyboard nav
-document.addEventListener('keydown', e => {
-  if (!document.getElementById('pc-overlay').classList.contains('open')) return;
-  if (e.key==='ArrowLeft')  pcNav(-1);
-  if (e.key==='ArrowRight') pcNav(1);
-  if (e.key==='Escape')     closePcModal();
-  if (e.key==='f'||e.key==='F') flipPc();
-});
+// Initial render
+applyFilters();
 </script>
 </body>
 </html>
