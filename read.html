@@ -5,16 +5,33 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script>
     if (new URLSearchParams(location.search).get('kiosk') === '1') {
-      document.documentElement.style.cssText = `
-        transform: rotate(-90deg);
-        transform-origin: center center;
-        width: 100vh;
-        height: 100vw;
-        position: fixed;
-        top: calc((100vh - 100vw) / 2);
-        left: calc((100vw - 100vh) / 2);
-        overflow: hidden;
+      document.documentElement.classList.add('kiosk-mode');
+      const s = document.createElement('style');
+      s.textContent = `
+        html.kiosk-mode {
+          transform: rotate(-90deg);
+          transform-origin: center center;
+          width: 100vh !important;
+          height: 100vw !important;
+          position: fixed !important;
+          top: calc((100vh - 100vw) / 2) !important;
+          left: calc((100vw - 100vh) / 2) !important;
+          overflow: hidden !important;
+        }
+        html.kiosk-mode .page { padding:1rem 1.2rem 3rem !important; }
+        html.kiosk-mode .hero-logo-img { height:160px !important; }
+        html.kiosk-mode .letters-grid { grid-template-columns:1fr !important; gap:1.2rem !important; }
+        html.kiosk-mode .card-scene { aspect-ratio:3/2 !important; }
+        html.kiosk-mode .card-flip-hint { display:none !important; }
+        html.kiosk-mode .card-photo-btn { display:flex !important; }
+        html.kiosk-mode .filter-bar { flex-direction:column !important; gap:0.5rem !important; }
+        html.kiosk-mode .dropdowns-row { flex-direction:column !important; gap:0.4rem !important; }
+        html.kiosk-mode .filter-select { min-width:100% !important; width:100% !important; font-size:0.8rem !important; }
+        html.kiosk-mode .theme-row { flex-wrap:wrap !important; row-gap:0.4rem !important; }
+        html.kiosk-mode .theme-chip { font-size:0.65rem !important; padding:0.3rem 0.75rem !important; }
+        html.kiosk-mode .search-input { width:100% !important; font-size:0.9rem !important; }
       `;
+      document.head.appendChild(s);
     }
   </script>
   <title>Read · اقرأ — Postcards to Home</title>

@@ -4,21 +4,40 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script>
-    // Kiosk rotation: ?kiosk=1 rotates page 90° so landscape screen appears portrait
     if (new URLSearchParams(location.search).get('kiosk') === '1') {
-      document.documentElement.style.cssText = `
-        transform: rotate(-90deg);
-        transform-origin: center center;
-        width: 100vh;
-        height: 100vw;
-        position: fixed;
-        top: calc((100vh - 100vw) / 2);
-        left: calc((100vw - 100vh) / 2);
-        overflow: hidden;
+      document.documentElement.classList.add('kiosk-mode');
+      const s = document.createElement('style');
+      s.textContent = `
+        html.kiosk-mode {
+          transform: rotate(-90deg);
+          transform-origin: center center;
+          width: 100vh !important;
+          height: 100vw !important;
+          position: fixed !important;
+          top: calc((100vh - 100vw) / 2) !important;
+          left: calc((100vw - 100vh) / 2) !important;
+          overflow: hidden !important;
+        }
+        html.kiosk-mode .page { padding:1.5rem 2rem 6rem !important; max-width:100% !important; }
+        html.kiosk-mode .tagline-text { display:none !important; }
+        html.kiosk-mode .tagline-row { justify-content:center !important; margin-bottom:1rem !important; }
+        html.kiosk-mode .hero-logo-img { height:220px !important; }
+        html.kiosk-mode .dual-card-wrap { flex-direction:column !important; align-items:center !important; gap:2rem !important; padding-bottom:3rem !important; }
+        html.kiosk-mode .pc-front-card { width:90% !important; max-width:100% !important; aspect-ratio:3/2 !important; transform:none !important; }
+        html.kiosk-mode .pc-back-card { width:90% !important; max-width:100% !important; aspect-ratio:unset !important; transform:none !important; }
+        html.kiosk-mode .postcard { min-height:500px !important; }
+        html.kiosk-mode .pc-body { flex-direction:row !important; }
+        html.kiosk-mode .pc-message { min-height:220px !important; }
+        html.kiosk-mode .msg-ta { font-size:1.1rem !important; line-height:1.7 !important; }
+        html.kiosk-mode .toform-in { font-size:1rem !important; padding:6px 0 !important; }
+        html.kiosk-mode .toform-lbl { font-size:0.65rem !important; }
+        html.kiosk-mode .theme-pill { font-size:0.6rem !important; padding:0.25rem 0.6rem !important; }
+        html.kiosk-mode .deco-stamp { width:90px !important; }
+        html.kiosk-mode .photo-preload-grid { grid-template-columns:repeat(3,1fr) !important; gap:0.6rem !important; }
+        html.kiosk-mode .btn-pub { font-size:0.8rem !important; padding:0.8rem 1.8rem !important; }
+        html.kiosk-mode .style-name { font-size:0.75rem !important; }
       `;
-      document.addEventListener('DOMContentLoaded', () => {
-        document.body.classList.add('kiosk-portrait');
-      });
+      document.head.appendChild(s);
     }
   </script>
   <title>Postcards to Home · رسائل الى الوطن</title>
@@ -728,23 +747,6 @@
     }
     input:focus, textarea:focus { outline:none; }
 
-    /* ── KIOSK PORTRAIT (landscape screen rotated via CSS) ── */
-    body.kiosk-portrait .page { padding:1rem 1.5rem 5rem; max-width:100%; }
-    body.kiosk-portrait .tagline-text { display:none; }
-    body.kiosk-portrait .tagline-row { justify-content:center; margin-bottom:1.2rem; }
-    body.kiosk-portrait .hero-logo-img { height:170px; }
-    body.kiosk-portrait .dual-card-wrap { flex-direction:column; align-items:center; gap:1.8rem; padding-bottom:3rem; }
-    body.kiosk-portrait .pc-front-card { width:100%; max-width:100%; aspect-ratio:3/2; transform:none; }
-    body.kiosk-portrait .pc-back-card { width:100%; max-width:100%; aspect-ratio:unset; transform:none; }
-    body.kiosk-portrait .postcard { min-height:460px; }
-    body.kiosk-portrait .pc-body { flex-direction:row; }
-    body.kiosk-portrait .pc-message { min-height:200px; }
-    body.kiosk-portrait .msg-ta { font-size:1.05rem; line-height:1.7; }
-    body.kiosk-portrait .toform-in { font-size:1rem; padding:5px 0; }
-    body.kiosk-portrait .theme-pill { font-size:0.55rem; padding:0.22rem 0.55rem; }
-    body.kiosk-portrait .deco-stamp { width:80px; }
-    body.kiosk-portrait .photo-preload-grid { grid-template-columns:repeat(3,1fr); gap:0.6rem; }
-    body.kiosk-portrait .btn-pub { font-size:0.75rem; padding:0.7rem 1.6rem; }
 
     /* ── PORTRAIT / KIOSK (vertical touchscreen) ── */
     @media (orientation: portrait) {
