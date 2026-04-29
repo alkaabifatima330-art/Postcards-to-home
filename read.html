@@ -816,7 +816,7 @@ function buildMiniCard(c, i, arr) {
             </div>
           </div>
           <div class="card-flip-hint">hover for photo · مرّر للصورة — click to expand · انقر للتوسيع</div>
-          ${hasPhoto ? `<button class="card-photo-btn" onclick="event.stopPropagation();const s=this.closest('.card-scene');s.classList.toggle('photo-peek');this.textContent=s.classList.contains('photo-peek')?'✕ Letter · الرسالة':'📷 Photo · صورة';">📷 Photo · صورة</button>` : ''}
+          ${hasPhoto ? `<button class="card-photo-btn" onclick="event.stopPropagation();const s=this.closest('.card-scene');s.classList.toggle('photo-peek');this.textContent=s.classList.contains('photo-peek')?'✕ Letter · الرسالة':'Photo · صورة';">Photo · صورة</button>` : ''}
         </div>
 
         <!-- BACK — photo side -->
