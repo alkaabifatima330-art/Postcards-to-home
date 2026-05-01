@@ -1909,90 +1909,82 @@ function playSendAnimation(onDone) {
 
 function showShareSheet(cardData) {
   const cardUrl = location.origin + location.pathname.replace('index.html','') + 'read.html?id=' + cardData.id;
+  const waMsg = encodeURIComponent('Someone wrote you a postcard · كتبوا لك بطاقة بريدية\n\n' + cardUrl);
 
   const sheet = document.createElement('div');
   sheet.id = 'share-sheet';
   sheet.innerHTML = `
     <style>
-      #share-sheet {
-        position:fixed; inset:0; z-index:9999;
-        background:rgba(12,6,2,0.82); backdrop-filter:blur(12px);
-        display:flex; align-items:center; justify-content:center;
-        animation:ssIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
-      }
-      @keyframes ssIn { from { opacity:0; transform:scale(0.92); } to { opacity:1; transform:none; } }
-      #share-box {
-        background:#FAF3E2; border-radius:6px; padding:2rem 2.2rem;
-        max-width:360px; width:90vw; text-align:center;
-        box-shadow:0 24px 80px rgba(0,0,0,0.5);
-      }
-      #share-box .ss-title { font-family:'IM Fell English',Georgia,serif; font-size:1.35rem; color:#3B1F08; margin-bottom:0.2rem; }
-      #share-box .ss-sub { font-size:0.72rem; color:rgba(58,34,8,0.55); margin-bottom:1.4rem; font-style:italic; }
-      #share-box .ss-btn {
-        display:flex; align-items:center; justify-content:center; gap:0.5rem;
-        width:100%; padding:0.65rem 1rem; border-radius:4px; border:none;
-        font-family:'Now',sans-serif; font-size:0.78rem; letter-spacing:0.06em;
-        cursor:pointer; margin-bottom:0.6rem;
-        transition:transform 0.15s cubic-bezier(0.34,1.56,0.64,1), opacity 0.15s;
-      }
-      #share-box .ss-btn:hover { transform:translateY(-2px); }
-      #share-box .ss-btn:active { transform:scale(0.97); }
-      .ss-btn-share { background:#CC2222; color:#fff; }
-      .ss-btn-copy  { background:rgba(58,34,8,0.08); color:#3B1F08; border:1px solid rgba(58,34,8,0.15) !important; }
-      .ss-btn-read  { background:transparent; color:rgba(58,34,8,0.5); font-size:0.7rem; border:none; margin-top:0.2rem; }
-      .ss-divider { font-size:0.62rem; color:rgba(58,34,8,0.3); margin:0.4rem 0; letter-spacing:0.1em; }
-      #ss-copy-msg { font-size:0.66rem; color:#2a7a2a; margin-top:0.3rem; min-height:1em; }
+      #share-sheet { position:fixed; inset:0; z-index:9999; background:rgba(12,6,2,0.82); backdrop-filter:blur(12px); display:flex; align-items:center; justify-content:center; animation:ssIn 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+      @keyframes ssIn { from{opacity:0;transform:scale(0.92)} to{opacity:1;transform:none} }
+      #share-box { background:#FAF3E2; border-radius:6px; padding:2rem 2.2rem; max-width:400px; width:92vw; text-align:center; box-shadow:0 24px 80px rgba(0,0,0,0.5); }
+      .ss-title { font-family:'IM Fell English',Georgia,serif; font-size:1.35rem; color:#3B1F08; margin-bottom:0.2rem; }
+      .ss-sub { font-size:0.72rem; color:rgba(58,34,8,0.55); margin-bottom:1.4rem; font-style:italic; }
+      .ss-label { font-size:0.55rem; letter-spacing:0.14em; text-transform:uppercase; color:rgba(58,34,8,0.5); display:block; text-align:left; margin-bottom:0.35rem; }
+      .ss-phone-wrap { display:flex; gap:0.5rem; margin-bottom:0.5rem; }
+      .ss-phone-code { font-family:'Now',sans-serif; font-size:0.82rem; color:#3B1F08; background:rgba(255,255,255,0.85); border:1px solid rgba(58,34,8,0.2); border-radius:4px; padding:0.55rem 0.6rem; width:72px; outline:none; text-align:center; }
+      .ss-phone-input { font-family:'Now',sans-serif; font-size:0.82rem; color:#3B1F08; background:rgba(255,255,255,0.85); border:1px solid rgba(58,34,8,0.2); border-radius:4px; padding:0.55rem 0.75rem; flex:1; outline:none; }
+      .ss-phone-input::placeholder { color:rgba(58,34,8,0.3); font-style:italic; }
+      .ss-phone-code:focus, .ss-phone-input:focus { border-color:rgba(58,34,8,0.4); }
+      .ss-btn { display:flex; align-items:center; justify-content:center; gap:0.5rem; width:100%; padding:0.7rem 1rem; border-radius:4px; border:none; font-family:'Now',sans-serif; font-size:0.78rem; letter-spacing:0.06em; cursor:pointer; margin-bottom:0.5rem; transition:transform 0.15s cubic-bezier(0.34,1.56,0.64,1); }
+      .ss-btn:hover { transform:translateY(-2px); }
+      .ss-btn:active { transform:scale(0.97); }
+      .ss-wa { background:#25D366; color:#fff; }
+      .ss-wa-any { background:rgba(37,211,102,0.12); color:#1a8040; border:1px solid rgba(37,211,102,0.4) !important; }
+      .ss-divider { font-size:0.58rem; color:rgba(58,34,8,0.28); margin:0.5rem 0; letter-spacing:0.1em; }
+      .ss-read { background:transparent; color:rgba(58,34,8,0.45); font-size:0.68rem; border:none; margin-top:0.15rem; }
+      .ss-msg { font-size:0.64rem; color:#1a7a3a; margin-top:0.3rem; min-height:1em; }
     </style>
     <div id="share-box">
-      <div class="ss-title">Your postcard is sent ✉️</div>
-      <div class="ss-sub">رسالتك أُرسلت · Share it with whoever it's for</div>
-      <button class="ss-btn ss-btn-share" id="ss-native-btn">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-        Share Postcard · شارك البطاقة
+      <div class="ss-title">Your postcard is sent</div>
+      <div class="ss-sub">رسالتك أُرسلت · Send it to someone on WhatsApp</div>
+
+      <span class="ss-label">Their phone number · رقم هاتفهم</span>
+      <div class="ss-phone-wrap">
+        <input class="ss-phone-code" id="ss-code" type="tel" value="+971" placeholder="+971">
+        <input class="ss-phone-input" id="ss-phone" type="tel" placeholder="50 123 4567" inputmode="numeric">
+      </div>
+
+      <button class="ss-btn ss-wa" id="ss-wa-btn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.116.554 4.103 1.523 5.824L0 24l6.341-1.498A11.935 11.935 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.002-1.368l-.36-.214-3.716.878.938-3.63-.234-.373A9.773 9.773 0 012.182 12C2.182 6.58 6.58 2.182 12 2.182S21.818 6.58 21.818 12 17.42 21.818 12 21.818z"/></svg>
+        Send via WhatsApp · أرسل عبر واتساب
       </button>
-      <div class="ss-divider">— or —</div>
-      <button class="ss-btn ss-btn-copy" id="ss-copy-btn">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-        Copy Link · انسخ الرابط
+
+      <div class="ss-divider">— or send to any contact —</div>
+
+      <button class="ss-btn ss-wa-any" id="ss-wa-any-btn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.116.554 4.103 1.523 5.824L0 24l6.341-1.498A11.935 11.935 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 01-5.002-1.368l-.36-.214-3.716.878.938-3.63-.234-.373A9.773 9.773 0 012.182 12C2.182 6.58 6.58 2.182 12 2.182S21.818 6.58 21.818 12 17.42 21.818 12 21.818z"/></svg>
+        Open WhatsApp — choose contact
       </button>
-      <div id="ss-copy-msg"></div>
-      <button class="ss-btn ss-btn-read" id="ss-read-btn">Read all letters · اقرأ الرسائل ←</button>
+
+      <div class="ss-msg" id="ss-msg"></div>
+      <button class="ss-btn ss-read" id="ss-read-btn">Read all letters · اقرأ الرسائل ←</button>
     </div>
   `;
   document.body.appendChild(sheet);
 
-  // Native share
-  document.getElementById('ss-native-btn').onclick = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'Postcards to Home · رسائل الى الوطن',
-          text: 'Someone sent you a letter home · أرسلوا لك رسالة إلى الوطن',
-          url: cardUrl
-        });
-      } catch(e) { /* user cancelled */ }
-    } else {
-      // fallback to copy on desktop
-      copyToClipboard(cardUrl);
-      document.getElementById('ss-copy-msg').textContent = 'Link copied! · تم نسخ الرابط';
+  // Send to specific number
+  document.getElementById('ss-wa-btn').onclick = () => {
+    const code = (document.getElementById('ss-code').value || '+971').replace(/\s/g,'');
+    const num  = document.getElementById('ss-phone').value.replace(/[\s\-\(\)]/g,'');
+    if (!num) {
+      document.getElementById('ss-msg').textContent = 'Enter a phone number first · أدخل رقم الهاتف';
+      document.getElementById('ss-phone').focus();
+      return;
     }
+    const full = code.replace('+','') + num;
+    window.open('https://wa.me/' + full + '?text=' + waMsg, '_blank');
+    document.getElementById('ss-msg').textContent = 'Opening WhatsApp… · جاري فتح واتساب';
   };
 
-  // Copy link
-  document.getElementById('ss-copy-btn').onclick = () => {
-    copyToClipboard(cardUrl);
-    document.getElementById('ss-copy-msg').textContent = 'Copied! · تم النسخ ✓';
-    setTimeout(() => {
-      const el = document.getElementById('ss-copy-msg');
-      if (el) el.textContent = '';
-    }, 2500);
+  // Open WhatsApp, choose contact yourself
+  document.getElementById('ss-wa-any-btn').onclick = () => {
+    window.open('https://wa.me/?text=' + waMsg, '_blank');
   };
 
   // Go to read page
   document.getElementById('ss-read-btn').onclick = () => {
-    const dest = cardData.emirate
-      ? 'read.html?emirate=' + encodeURIComponent(cardData.emirate)
-      : 'read.html';
+    const dest = cardData.emirate ? 'read.html?emirate=' + encodeURIComponent(cardData.emirate) : 'read.html';
     window.location.href = dest;
   };
 }
