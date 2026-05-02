@@ -6,6 +6,12 @@
   <script>
     if (new URLSearchParams(location.search).get('kiosk') === '1') {
       document.documentElement.classList.add('kiosk-mode');
+      // Keep ?kiosk=1 on all nav links so rotation is never lost
+      document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('a').forEach(a => {
+          try { const u = new URL(a.href); u.searchParams.set('kiosk','1'); a.href = u.toString(); } catch(e){}
+        });
+      });
       const s = document.createElement('style');
       s.textContent = `
         html.kiosk-mode {
@@ -836,13 +842,13 @@
 
   <!-- Tagline row with style switcher -->
   <div class="tagline-row">
-    <p class="tagline-text en">Write a postcard to home.<br>To a place, a person, a memory, or a feeling.<br>To the warmth that holds you,<br>and the safety that feels like yours.</p>
+    <p class="tagline-text en">Leave a postcard for what holds you: a place, a person, a memory, a home. Write to what shaped you, stayed with you, or what you had to leave behind. Every message becomes part of a living map of home.</p>
     <div class="style-switcher">
       <button class="style-arrow" onclick="prevStyle()" title="Previous · السابق">‹</button>
       <span class="style-name" id="style-name">Airmail · بريد جوي</span>
       <button class="style-arrow" onclick="nextStyle()" title="Next · التالي">›</button>
     </div>
-    <p class="tagline-text ar">اكتب بطاقة إلى الوطن.<br>إلى مكان، أو شخص، أو ذكرى، أو شعور.<br>إلى الدفء الذي يحتويك،<br>وإلى الأمان الذي تشعر به.</p>
+    <p class="tagline-text ar">اترك بطاقة لما يسكنك: مكان، شخص، ذكرى، وطن. اكتب لما شكّلك، لما بقي معك، أو لما كان عليك أن تتركه وراءك. كل رسالة تصبح جزءاً من خريطة حية للوطن.</p>
   </div>
 
   <!-- Hidden file input -->
@@ -1438,6 +1444,41 @@ function togglePanel(panelId, trigId) {
 
 // ── Theme ──
 let currentTheme = '';
+function resetForm() {
+  // Clear text fields
+  document.getElementById('f-msg').value = '';
+  document.getElementById('f-to').value = '';
+  document.getElementById('f-from').value = '';
+  ['to-region','to-nb','fr-region','fr-nb'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  ['to-country','to-city','fr-country','fr-city'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  // Clear photo
+  currentSceneSrc = '';
+  document.getElementById('photo-face').classList.remove('has-image');
+  document.getElementById('photo-bg-img').src = '';
+  document.getElementById('pc-ghost-photo').src = '';
+  document.getElementById('pc').classList.remove('has-ghost');
+  // Clear stamp
+  const sBox = document.getElementById('stamp-box');
+  const sImg = document.getElementById('stamp-box-img');
+  if (sBox) { sBox.classList.remove('has-stamp'); sBox.style.display = ''; }
+  if (sImg) { sImg.src = ''; sImg.style.display = 'none'; sImg.classList.remove('visible'); }
+  // Clear theme
+  currentTheme = '';
+  document.querySelectorAll('.theme-pill').forEach(o => o.classList.remove('sel'));
+  // Reset anonymous
+  if (anon) toggleAnon();
+  // Reset location rows
+  document.getElementById('to-nb-row') && (document.getElementById('to-nb-row').style.display = 'none');
+  document.getElementById('to-intl-row') && (document.getElementById('to-intl-row').style.display = 'none');
+  document.getElementById('fr-nb-row') && (document.getElementById('fr-nb-row').style.display = 'none');
+  document.getElementById('fr-intl-row') && (document.getElementById('fr-intl-row').style.display = 'none');
+  updatePhotoOverlay();
+}
+
 function pickTheme(el, name) {
   currentTheme = name;
   document.querySelectorAll('.theme-pill').forEach(o=>o.classList.remove('sel'));
@@ -1722,7 +1763,7 @@ function shakeEl(id) {
   setTimeout(() => el.classList.remove('field-shake'), 400);
 }
 
-function publish() {
+async function publish() {
   const msg      = document.getElementById('f-msg').value.trim();
   const to       = document.getElementById('f-to').value.trim();
   const toRegion = document.getElementById('to-region').value;
@@ -1803,7 +1844,7 @@ function publish() {
   const wall = loadWall();
   wall.unshift(cardData);
   saveWall(wall.slice(0, 30));
-  saveToSupabase(cardData); // save to real database
+  await saveToSupabase(cardData); // wait for DB save before showing QR
 
   document.getElementById('success-card-wrap').innerHTML = cardHTML(cardData, s.frame);
 
@@ -1909,92 +1950,36 @@ function playSendAnimation(onDone) {
 
 function showShareSheet(cardData) {
   const cardUrl = location.origin + location.pathname.replace('index.html','') + 'read.html?id=' + cardData.id;
+  const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=' + encodeURIComponent(cardUrl);
 
   const sheet = document.createElement('div');
   sheet.id = 'share-sheet';
   sheet.innerHTML = `
     <style>
-      #share-sheet {
-        position:fixed; inset:0; z-index:9999;
-        background:rgba(12,6,2,0.82); backdrop-filter:blur(12px);
-        display:flex; align-items:center; justify-content:center;
-        animation:ssIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
-      }
-      @keyframes ssIn { from { opacity:0; transform:scale(0.92); } to { opacity:1; transform:none; } }
-      #share-box {
-        background:#FAF3E2; border-radius:6px; padding:2rem 2.2rem;
-        max-width:360px; width:90vw; text-align:center;
-        box-shadow:0 24px 80px rgba(0,0,0,0.5);
-      }
-      #share-box .ss-title { font-family:'IM Fell English',Georgia,serif; font-size:1.35rem; color:#3B1F08; margin-bottom:0.2rem; }
-      #share-box .ss-sub { font-size:0.72rem; color:rgba(58,34,8,0.55); margin-bottom:1.4rem; font-style:italic; }
-      #share-box .ss-btn {
-        display:flex; align-items:center; justify-content:center; gap:0.5rem;
-        width:100%; padding:0.65rem 1rem; border-radius:4px; border:none;
-        font-family:'Now',sans-serif; font-size:0.78rem; letter-spacing:0.06em;
-        cursor:pointer; margin-bottom:0.6rem;
-        transition:transform 0.15s cubic-bezier(0.34,1.56,0.64,1), opacity 0.15s;
-      }
-      #share-box .ss-btn:hover { transform:translateY(-2px); }
-      #share-box .ss-btn:active { transform:scale(0.97); }
-      .ss-btn-share { background:#CC2222; color:#fff; }
-      .ss-btn-copy  { background:rgba(58,34,8,0.08); color:#3B1F08; border:1px solid rgba(58,34,8,0.15) !important; }
-      .ss-btn-read  { background:transparent; color:rgba(58,34,8,0.5); font-size:0.7rem; border:none; margin-top:0.2rem; }
-      .ss-divider { font-size:0.62rem; color:rgba(58,34,8,0.3); margin:0.4rem 0; letter-spacing:0.1em; }
-      #ss-copy-msg { font-size:0.66rem; color:#2a7a2a; margin-top:0.3rem; min-height:1em; }
+      #share-sheet { position:fixed; inset:0; z-index:9999; background:rgba(12,6,2,0.82); backdrop-filter:blur(12px); display:flex; align-items:center; justify-content:center; animation:ssIn 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+      @keyframes ssIn { from{opacity:0;transform:scale(0.92)} to{opacity:1;transform:none} }
+      #share-box { background:#FAF3E2; border-radius:6px; padding:2rem 2.2rem; max-width:380px; width:92vw; text-align:center; box-shadow:0 24px 80px rgba(0,0,0,0.5); position:relative; }
+      .ss-close { position:absolute; top:0.75rem; right:0.85rem; background:none; border:none; font-size:1.2rem; color:rgba(58,34,8,0.4); cursor:pointer; line-height:1; padding:0.2rem; transition:color 0.15s; }
+      .ss-close:hover { color:rgba(58,34,8,0.8); }
+      .ss-title { font-family:'IM Fell English',Georgia,serif; font-size:1.35rem; color:#3B1F08; margin-bottom:0.2rem; }
+      .ss-sub { font-size:0.72rem; color:rgba(58,34,8,0.55); margin-bottom:1.4rem; font-style:italic; line-height:1.6; }
+      .ss-qr { display:block; margin:0 auto 1.2rem; border-radius:4px; border:4px solid #FAF3E2; box-shadow:0 4px 20px rgba(0,0,0,0.18); }
+      .ss-hint { font-size:0.62rem; color:rgba(58,34,8,0.45); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:1rem; }
+      .ss-view-btn { margin-top:0.8rem; background:none; border:none; font-family:'Now',sans-serif; font-size:0.68rem; letter-spacing:0.08em; color:rgba(58,34,8,0.5); cursor:pointer; text-decoration:underline; }
     </style>
     <div id="share-box">
-      <div class="ss-title">Your postcard is sent ✉️</div>
-      <div class="ss-sub">رسالتك أُرسلت · Share it with whoever it's for</div>
-      <button class="ss-btn ss-btn-share" id="ss-native-btn">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-        Share Postcard · شارك البطاقة
-      </button>
-      <div class="ss-divider">— or —</div>
-      <button class="ss-btn ss-btn-copy" id="ss-copy-btn">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-        Copy Link · انسخ الرابط
-      </button>
-      <div id="ss-copy-msg"></div>
-      <button class="ss-btn ss-btn-read" id="ss-read-btn">Read all letters · اقرأ الرسائل ←</button>
+      <button class="ss-close" id="ss-close-btn">✕</button>
+      <div class="ss-title">Your postcard is sent</div>
+      <div class="ss-sub">رسالتك أُرسلت<br>Scan with your phone to keep it · امسح الرمز بهاتفك</div>
+      <img class="ss-qr" src="${qrUrl}" width="200" height="200" alt="QR code">
+      <div class="ss-hint">Scan · شارك · Save</div>
+      <button class="ss-view-btn" id="ss-view-btn">View all postcards · اقرأ الرسائل →</button>
     </div>
   `;
   document.body.appendChild(sheet);
 
-  // Native share
-  document.getElementById('ss-native-btn').onclick = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'Postcards to Home · رسائل الى الوطن',
-          text: 'Someone sent you a letter home · أرسلوا لك رسالة إلى الوطن',
-          url: cardUrl
-        });
-      } catch(e) { /* user cancelled */ }
-    } else {
-      // fallback to copy on desktop
-      copyToClipboard(cardUrl);
-      document.getElementById('ss-copy-msg').textContent = 'Link copied! · تم نسخ الرابط';
-    }
-  };
-
-  // Copy link
-  document.getElementById('ss-copy-btn').onclick = () => {
-    copyToClipboard(cardUrl);
-    document.getElementById('ss-copy-msg').textContent = 'Copied! · تم النسخ ✓';
-    setTimeout(() => {
-      const el = document.getElementById('ss-copy-msg');
-      if (el) el.textContent = '';
-    }, 2500);
-  };
-
-  // Go to read page
-  document.getElementById('ss-read-btn').onclick = () => {
-    const dest = cardData.emirate
-      ? 'read.html?emirate=' + encodeURIComponent(cardData.emirate)
-      : 'read.html';
-    window.location.href = dest;
-  };
+  document.getElementById('ss-close-btn').onclick = () => { sheet.remove(); resetForm(); };
+  document.getElementById('ss-view-btn').onclick = () => { resetForm(); window.location.href = 'read.html'; };
 }
 
 function copyToClipboard(text) {

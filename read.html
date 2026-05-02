@@ -6,6 +6,11 @@
   <script>
     if (new URLSearchParams(location.search).get('kiosk') === '1') {
       document.documentElement.classList.add('kiosk-mode');
+      document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('a').forEach(a => {
+          try { const u = new URL(a.href); u.searchParams.set('kiosk','1'); a.href = u.toString(); } catch(e){}
+        });
+      });
       const s = document.createElement('style');
       s.textContent = `
         html.kiosk-mode {
@@ -618,7 +623,7 @@ const _sb = supabase.createClient(
 
 function dbRowToCard(r) {
   return {
-    id: r.id,
+    id: Number(r.id),
     to: r.to || '',
     from: r.from || '',
     message: r.message || '',
@@ -657,17 +662,31 @@ let activeTheme = '';
 let searchQuery = '';
 
 // Load from Supabase and merge, then set up real-time
-loadFromSupabase().then(dbCards => {
-  if (dbCards.length) {
-    // merge: DB cards first, then any local-only cards not in DB
-    const dbIds = new Set(dbCards.map(c => c.id));
-    const localOnly = _wallRaw.filter(c => !dbIds.has(c.id));
-    allCards = [...dbCards, ...localOnly, ...SAMPLES];
-    applyFilters();
-    if (paramId) {
-      const idx = allCards.findIndex(c => c.id === paramId);
-      if (idx !== -1) setTimeout(() => openCard(idx), 300);
+loadFromSupabase().then(async dbCards => {
+  const dbIds = new Set(dbCards.map(c => c.id));
+  const localOnly = _wallRaw.filter(c => !dbIds.has(c.id));
+  allCards = [...dbCards, ...localOnly, ...SAMPLES];
+
+  // If opened via QR/share link, fetch that card directly in case it's new
+  if (paramId) {
+    let target = allCards.find(c => String(c.id) === String(paramId));
+    if (!target) {
+      // Not in batch load yet — fetch it directly
+      const { data } = await _sb.from('letters').select('*').eq('id', paramId).maybeSingle();
+      if (data) {
+        target = dbRowToCard(data);
+        allCards = [target, ...allCards];
+      }
+    } else {
+      // Move it to the front so it appears first in the grid
+      allCards = [target, ...allCards.filter(c => String(c.id) !== String(paramId))];
     }
+    applyFilters();
+    if (target) {
+      setTimeout(() => openCard(0), 400);
+    }
+  } else {
+    applyFilters();
   }
 });
 
