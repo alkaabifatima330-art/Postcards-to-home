@@ -56,7 +56,7 @@
       --font-writing-ar:'Massira','Kalam',cursive;
     }
     * { box-sizing:border-box; margin:0; padding:0; }
-    body { font-family:var(--font-ui); background:var(--parchment); color:var(--deep-brown); min-height:100vh; overflow-x:hidden; }
+    body { font-family:var(--font-ui); background:var(--parchment); color:var(--deep-brown); }
     body::before {
       content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
       background:
@@ -172,12 +172,12 @@
     }
 
     /* ── SCROLLBAR ── */
-    html { overflow-y: scroll; }
-    ::-webkit-scrollbar { width: 18px; }
-    ::-webkit-scrollbar-track { background: rgba(58,34,8,0.1); border-radius: 9px; }
-    ::-webkit-scrollbar-thumb { background: rgba(58,34,8,0.5); border-radius: 9px; min-height: 60px; border: 3px solid transparent; background-clip: padding-box; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(58,34,8,0.7); border: 3px solid transparent; background-clip: padding-box; }
-    ::-webkit-scrollbar-thumb:active { background: rgba(58,34,8,0.9); border: 3px solid transparent; background-clip: padding-box; }
+    html, body { height: 100%; overflow: hidden; }
+    .page-wrap { height: 100%; overflow-y: scroll; overflow-x: hidden; }
+    .page-wrap::-webkit-scrollbar { width: 18px; }
+    .page-wrap::-webkit-scrollbar-track { background: rgba(58,34,8,0.1); }
+    .page-wrap::-webkit-scrollbar-thumb { background: rgba(58,34,8,0.55); border-radius: 9px; min-height: 60px; border: 4px solid transparent; background-clip: padding-box; }
+    .page-wrap::-webkit-scrollbar-thumb:active { background: rgba(58,34,8,0.85); border: 4px solid transparent; background-clip: padding-box; }
 
     /* ── FLIP CARD GRID ── */
     .letters-grid {
@@ -186,7 +186,7 @@
       gap:1.5rem;
     }
     .page-wrap {
-      min-height:100vh;
+      min-height: 100%;
     }
 
     /* Scene — postcard 3:2 ratio */
