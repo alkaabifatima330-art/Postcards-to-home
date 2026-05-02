@@ -8,7 +8,7 @@
     if (_isKiosk) {
       document.documentElement.classList.add('kiosk-mode');
       const s = document.createElement('style');
-      s.textContent = 'html.kiosk-mode{transform:rotate(-90deg);transform-origin:center center;width:100vh!important;height:100vw!important;position:fixed!important;top:calc((100vh - 100vw)/2)!important;left:calc((100vw - 100vh)/2)!important;overflow:hidden!important;}';
+      s.textContent = 'html.kiosk-mode{transform:rotate(-90deg);transform-origin:center center;width:100vh!important;height:100vw!important;position:fixed!important;top:calc((100vh - 100vw)/2)!important;left:calc((100vw - 100vh)/2)!important;overflow:hidden!important;}html.kiosk-mode body,html.kiosk-mode #wrap{height:100vw!important;}';
       document.head.appendChild(s);
     }
   </script>
@@ -157,20 +157,6 @@
 
   <!-- MAP -->
   <div id="map-half">
-    <nav class="top-nav">
-      <a href="index.html" class="nav-link">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-        Write · اكتب
-      </a>
-      <a href="explore.html" class="nav-link active">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-        Explore · استكشف
-      </a>
-      <a href="read.html" class="nav-link">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="1"/><line x1="12" y1="5" x2="12" y2="19"/><line x1="14" y1="9" x2="20" y2="9"/><line x1="14" y1="13" x2="20" y2="13"/><line x1="14" y1="17" x2="18" y2="17"/></svg>
-        Read · اقرأ
-      </a>
-    </nav>
     <div id="map"></div>
     <div id="map-grain"></div>
     <div id="emirate-bar">
