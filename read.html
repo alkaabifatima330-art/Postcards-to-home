@@ -171,10 +171,11 @@
     }
 
     /* ── SCROLLBAR ── */
-    #scroll-track{position:fixed;right:0;top:0;bottom:0;width:28px;z-index:300;cursor:pointer;display:flex;align-items:stretch;justify-content:center;}
-    #scroll-track::before{content:'';position:absolute;top:0;bottom:0;left:50%;transform:translateX(-50%);width:4px;background:rgba(58,34,8,0.13);border-radius:2px;}
-    #scroll-thumb{position:absolute;left:50%;transform:translateX(-50%);width:4px;background:rgba(58,34,8,0.5);border-radius:2px;min-height:36px;cursor:grab;}
-    #scroll-thumb:active{cursor:grabbing;background:rgba(58,34,8,0.8);}
+    html { overflow-y: scroll; }
+    ::-webkit-scrollbar { width: 10px; }
+    ::-webkit-scrollbar-track { background: rgba(58,34,8,0.08); }
+    ::-webkit-scrollbar-thumb { background: rgba(58,34,8,0.4); border-radius: 5px; min-height: 48px; }
+    ::-webkit-scrollbar-thumb:active { background: rgba(58,34,8,0.7); }
 
     /* ── FLIP CARD GRID ── */
     .letters-grid {
@@ -184,8 +185,6 @@
     }
     .page-wrap {
       min-height:100vh;
-      overflow-y:auto;
-      -webkit-overflow-scrolling:touch;
     }
 
     /* Scene — postcard 3:2 ratio */
@@ -984,48 +983,5 @@ if (paramEmirate) {
 
 </script>
 
-<!-- Scroll bar -->
-<div id="scroll-track"><div id="scroll-thumb"></div></div>
-
-<script>
-const _track = document.getElementById('scroll-track');
-const _thumb = document.getElementById('scroll-thumb');
-
-function _updateThumb() {
-  const sh = document.documentElement.scrollHeight - window.innerHeight;
-  const trackH = window.innerHeight;
-  const th = Math.max(36, (window.innerHeight / document.documentElement.scrollHeight) * trackH);
-  const top = sh > 0 ? (window.scrollY / sh) * (trackH - th) : 0;
-  _thumb.style.height = th + 'px';
-  _thumb.style.top = top + 'px';
-}
-window.addEventListener('scroll', _updateThumb);
-window.addEventListener('resize', _updateThumb);
-// Re-check after cards render
-const _obs = new MutationObserver(_updateThumb);
-_obs.observe(document.getElementById('letters-grid'), {childList:true,subtree:true});
-_updateThumb();
-
-let _drag = false, _dy0 = 0, _sy0 = 0;
-function _startDrag(y) { _drag = true; _dy0 = y; _sy0 = window.scrollY; }
-function _moveDrag(y) {
-  if (!_drag) return;
-  const sh = document.documentElement.scrollHeight - window.innerHeight;
-  const ratio = sh / (window.innerHeight - _thumb.offsetHeight);
-  window.scrollTo(0, _sy0 + (y - _dy0) * ratio);
-}
-_thumb.addEventListener('mousedown', e => { _startDrag(e.clientY); e.preventDefault(); });
-_thumb.addEventListener('touchstart', e => { _startDrag(e.touches[0].clientY); e.preventDefault(); }, {passive:false});
-document.addEventListener('mousemove', e => _moveDrag(e.clientY));
-document.addEventListener('touchmove', e => { if(_drag) { _moveDrag(e.touches[0].clientY); e.preventDefault(); } }, {passive:false});
-document.addEventListener('mouseup', () => _drag = false);
-document.addEventListener('touchend', () => _drag = false);
-
-_track.addEventListener('click', e => {
-  if (e.target === _thumb) return;
-  const sh = document.documentElement.scrollHeight - window.innerHeight;
-  window.scrollTo({top: (e.clientY / window.innerHeight) * sh, behavior:'smooth'});
-});
-</script>
 </body>
 </html>
