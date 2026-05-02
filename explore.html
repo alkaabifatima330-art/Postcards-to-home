@@ -63,10 +63,10 @@
     .search-icon{position:absolute;left:0.6rem;top:50%;transform:translateY(-50%);opacity:0.35;font-size:0.78rem;pointer-events:none;}
     .search-clear-btn{position:absolute;right:0.5rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;opacity:0.35;font-size:0.85rem;color:var(--brown);display:none;}
     .search-clear-btn.show{display:block;}
-    .dropdowns-row{display:flex;gap:0.5rem;flex-wrap:wrap;}
+    .dropdowns-row{display:flex;gap:0.5rem;flex-direction:column;}
     .filter-group{display:flex;flex-direction:column;gap:0.18rem;}
     .filter-lbl{font-size:0.42rem;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:rgba(92,52,24,0.45);}
-    .filter-select{font-family:var(--font-ui);font-size:0.7rem;color:var(--brown);background:rgba(255,255,255,0.85);border:1px solid rgba(92,52,24,0.18);border-radius:2px;padding:0.28rem 1.5rem 0.28rem 0.5rem;appearance:none;outline:none;min-width:140px;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='5'%3E%3Cpath d='M0 0l4.5 5 4.5-5z' fill='%233A2208' opacity='.4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 0.4rem center;}
+    .filter-select{font-family:var(--font-ui);font-size:0.7rem;color:var(--brown);background:rgba(255,255,255,0.85);border:1px solid rgba(92,52,24,0.18);border-radius:2px;padding:0.28rem 1.5rem 0.28rem 0.5rem;appearance:none;outline:none;min-width:100%;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='5'%3E%3Cpath d='M0 0l4.5 5 4.5-5z' fill='%233A2208' opacity='.4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 0.4rem center;}
     .filter-select:disabled{opacity:0.4;cursor:not-allowed;}
     .theme-row{display:flex;flex-wrap:wrap;gap:0.3rem;align-items:center;}
     .filter-theme-lbl{font-size:0.42rem;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:rgba(92,52,24,0.45);margin-right:0.1rem;white-space:nowrap;}
@@ -362,6 +362,20 @@ document.querySelectorAll('.theme-chip').forEach(chip=>{
     applyFilters();
   });
 });
+const dotLayer=L.layerGroup().addTo(map);
+function renderDots(cards){
+  dotLayer.clearLayers();
+  cards.forEach(c=>{
+    const em=ED.find(e=>e.id===c.emirate);
+    if(!em)return;
+    const h=String(c.id).split('').reduce((a,ch)=>a+ch.charCodeAt(0),0);
+    const jlat=((h*13)%100)/1000-0.05;
+    const jlng=((h*17)%100)/1000-0.05;
+    const color=EC[em.id]||'#8B5E3C';
+    L.circleMarker([em.lat+jlat,em.lng+jlng],{radius:6,fillColor:color,fillOpacity:0.8,color:'rgba(255,255,255,0.6)',weight:1.5}).addTo(dotLayer);
+  });
+}
+
 function applyFilters(){
   const loc=document.getElementById('f-location').value;
   const nb=document.getElementById('f-neighborhood').value;
@@ -375,6 +389,7 @@ function applyFilters(){
   });
   document.getElementById('result-count').textContent=f.length+(f.length===1?' letter · رسالة':' letters · رسائل');
   renderGrid(f);
+  renderDots(f);
 }
 function renderGrid(cards){
   const g=document.getElementById('letters-grid');
