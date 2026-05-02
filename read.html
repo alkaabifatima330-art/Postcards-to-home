@@ -56,7 +56,7 @@
       --font-writing-ar:'Massira','Kalam',cursive;
     }
     * { box-sizing:border-box; margin:0; padding:0; }
-    body { font-family:var(--font-ui); background:var(--parchment); color:var(--deep-brown); }
+    body { font-family:var(--font-ui); background:var(--parchment); color:var(--deep-brown); min-height:100%; }
     body::before {
       content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
       background:
@@ -172,8 +172,8 @@
     }
 
     /* ── SCROLL ARROWS ── */
-    html { overflow-x: hidden; overflow-y: auto; }
-    body { overflow: visible; min-height: 100vh; }
+    html, body { height: 100%; margin: 0; }
+    .page-wrap { height: 100%; overflow-y: auto; overflow-x: hidden; }
     .scroll-btn { position:fixed; right:12px; width:48px; height:48px; border-radius:50%; background:rgba(58,34,8,0.75); border:none; color:#EDE1C8; font-size:1.3rem; cursor:pointer; z-index:9999; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 10px rgba(0,0,0,0.25); touch-action:manipulation; user-select:none; -webkit-user-select:none; }
     .scroll-btn:active { background:rgba(58,34,8,1); transform:scale(0.93); }
     #btn-up   { bottom:72px; }
@@ -990,27 +990,25 @@ if (paramEmirate) {
 
 <script>
 (function(){
+  const wrap = document.querySelector('.page-wrap');
   const STEP = 320;
   let _iv = null;
 
-  function scrollBy(dir) { window.scrollBy({top: dir * STEP, behavior:'smooth'}); }
-
-  function hold(dir) { scrollBy(dir); _iv = setInterval(() => window.scrollBy({top: dir * 80}), 120); }
+  function doScroll(dir) { wrap.scrollBy({top: dir * STEP, behavior:'smooth'}); }
+  function hold(dir) { doScroll(dir); _iv = setInterval(() => wrap.scrollBy({top: dir * 80}), 120); }
   function release() { clearInterval(_iv); _iv = null; }
 
   const up   = document.getElementById('btn-up');
   const down = document.getElementById('btn-down');
 
-  up.addEventListener('click', () => scrollBy(-1));
-  down.addEventListener('click', () => scrollBy(1));
-
   up.addEventListener('touchstart',   e => { e.preventDefault(); hold(-1); }, {passive:false});
   down.addEventListener('touchstart', e => { e.preventDefault(); hold(1);  }, {passive:false});
   up.addEventListener('touchend',   release);
   down.addEventListener('touchend', release);
-  up.addEventListener('mousedown',   () => hold(-1));
-  down.addEventListener('mousedown', () => hold(1));
+  up.addEventListener('mousedown',   e => { e.preventDefault(); hold(-1); });
+  down.addEventListener('mousedown', e => { e.preventDefault(); hold(1);  });
   document.addEventListener('mouseup', release);
+  document.addEventListener('touchend', release);
 })();
 </script>
 
