@@ -174,10 +174,11 @@
     /* ── SCROLLBAR ── */
     html, body { height: 100%; overflow: hidden; }
     .page-wrap { height: 100%; overflow-y: scroll; overflow-x: hidden; }
-    .page-wrap::-webkit-scrollbar { width: 18px; }
-    .page-wrap::-webkit-scrollbar-track { background: rgba(58,34,8,0.1); }
-    .page-wrap::-webkit-scrollbar-thumb { background: rgba(58,34,8,0.55); border-radius: 9px; min-height: 60px; border: 4px solid transparent; background-clip: padding-box; }
-    .page-wrap::-webkit-scrollbar-thumb:active { background: rgba(58,34,8,0.85); border: 4px solid transparent; background-clip: padding-box; }
+    .page-wrap::-webkit-scrollbar { width: 0; }
+    #sb-track { position:fixed; right:0; top:0; bottom:0; width:44px; z-index:9999; touch-action:none; cursor:pointer; }
+    #sb-rail { position:absolute; right:6px; top:0; bottom:0; width:6px; background:rgba(58,34,8,0.12); border-radius:3px; }
+    #sb-thumb { position:absolute; right:6px; width:6px; background:rgba(58,34,8,0.5); border-radius:3px; min-height:50px; touch-action:none; }
+    #sb-thumb.active { background:rgba(58,34,8,0.8); }
 
     /* ── FLIP CARD GRID ── */
     .letters-grid {
@@ -983,6 +984,69 @@ if (paramEmirate) {
 }
 
 
+</script>
+
+<div id="sb-track"><div id="sb-rail"></div><div id="sb-thumb"></div></div>
+
+<script>
+(function(){
+  const wrap = document.querySelector('.page-wrap');
+  const track = document.getElementById('sb-track');
+  const thumb = document.getElementById('sb-thumb');
+
+  function update() {
+    const sh = wrap.scrollHeight - wrap.clientHeight;
+    if (sh <= 0) return;
+    const ratio = wrap.scrollTop / sh;
+    const trackH = track.offsetHeight;
+    const thumbH = Math.max(50, (wrap.clientHeight / wrap.scrollHeight) * trackH);
+    thumb.style.height = thumbH + 'px';
+    thumb.style.top = (ratio * (trackH - thumbH)) + 'px';
+  }
+
+  wrap.addEventListener('scroll', update);
+  window.addEventListener('resize', update);
+  new MutationObserver(update).observe(document.getElementById('letters-grid'), {childList:true, subtree:true});
+  setTimeout(update, 500);
+
+  let dragging = false, startY = 0, startScroll = 0;
+
+  function onStart(y) {
+    dragging = true;
+    startY = y;
+    startScroll = wrap.scrollTop;
+    thumb.classList.add('active');
+    document.body.style.userSelect = 'none';
+    document.body.style.webkitUserSelect = 'none';
+  }
+  function onMove(y) {
+    if (!dragging) return;
+    const sh = wrap.scrollHeight - wrap.clientHeight;
+    const thumbH = thumb.offsetHeight;
+    const ratio = sh / (track.offsetHeight - thumbH);
+    wrap.scrollTop = startScroll + (y - startY) * ratio;
+  }
+  function onEnd() {
+    dragging = false;
+    thumb.classList.remove('active');
+    document.body.style.userSelect = '';
+    document.body.style.webkitUserSelect = '';
+  }
+
+  thumb.addEventListener('mousedown',  e => { onStart(e.clientY); e.preventDefault(); });
+  thumb.addEventListener('touchstart', e => { onStart(e.touches[0].clientY); e.preventDefault(); }, {passive:false});
+  document.addEventListener('mousemove',  e => onMove(e.clientY));
+  document.addEventListener('touchmove',  e => { if(dragging){ onMove(e.touches[0].clientY); e.preventDefault(); } }, {passive:false});
+  document.addEventListener('mouseup',  onEnd);
+  document.addEventListener('touchend', onEnd);
+
+  track.addEventListener('click', e => {
+    if (e.target === thumb) return;
+    const sh = wrap.scrollHeight - wrap.clientHeight;
+    const r = track.getBoundingClientRect();
+    wrap.scrollTo({top: ((e.clientY - r.top) / track.offsetHeight) * sh, behavior:'smooth'});
+  });
+})();
 </script>
 
 </body>
