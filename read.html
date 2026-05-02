@@ -55,7 +55,7 @@
       --font-writing-ar:'Massira','Kalam',cursive;
     }
     * { box-sizing:border-box; margin:0; padding:0; }
-    body { font-family:var(--font-ui); background:var(--parchment); color:var(--deep-brown); min-height:100vh; overflow-x:hidden; overflow-y:auto; }
+    body { font-family:var(--font-ui); background:var(--parchment); color:var(--deep-brown); min-height:100vh; overflow-x:hidden; }
     body::before {
       content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
       background:
@@ -171,9 +171,10 @@
     }
 
     /* ── SCROLLBAR ── */
-    #scroll-track{position:fixed;right:6px;top:2%;bottom:2%;width:6px;background:rgba(58,34,8,0.12);border-radius:3px;z-index:300;cursor:pointer;}
-    #scroll-thumb{position:absolute;left:0;width:100%;background:rgba(58,34,8,0.4);border-radius:3px;min-height:48px;transition:background 0.15s;cursor:grab;}
-    #scroll-thumb:active{cursor:grabbing;background:rgba(58,34,8,0.65);}
+    #scroll-track{position:fixed;right:0;top:0;bottom:0;width:28px;z-index:300;cursor:pointer;display:flex;align-items:stretch;justify-content:center;}
+    #scroll-track::before{content:'';position:absolute;top:0;bottom:0;left:50%;transform:translateX(-50%);width:4px;background:rgba(58,34,8,0.13);border-radius:2px;}
+    #scroll-thumb{position:absolute;left:50%;transform:translateX(-50%);width:4px;background:rgba(58,34,8,0.5);border-radius:2px;min-height:36px;cursor:grab;}
+    #scroll-thumb:active{cursor:grabbing;background:rgba(58,34,8,0.8);}
 
     /* ── FLIP CARD GRID ── */
     .letters-grid {
@@ -992,21 +993,25 @@ const _thumb = document.getElementById('scroll-thumb');
 
 function _updateThumb() {
   const sh = document.documentElement.scrollHeight - window.innerHeight;
-  const th = Math.max(48, (window.innerHeight / document.documentElement.scrollHeight) * _track.offsetHeight);
-  const top = sh > 0 ? (window.scrollY / sh) * (_track.offsetHeight - th) : 0;
+  const trackH = window.innerHeight;
+  const th = Math.max(36, (window.innerHeight / document.documentElement.scrollHeight) * trackH);
+  const top = sh > 0 ? (window.scrollY / sh) * (trackH - th) : 0;
   _thumb.style.height = th + 'px';
   _thumb.style.top = top + 'px';
 }
 window.addEventListener('scroll', _updateThumb);
 window.addEventListener('resize', _updateThumb);
-setTimeout(_updateThumb, 400);
+// Re-check after cards render
+const _obs = new MutationObserver(_updateThumb);
+_obs.observe(document.getElementById('letters-grid'), {childList:true,subtree:true});
+_updateThumb();
 
 let _drag = false, _dy0 = 0, _sy0 = 0;
 function _startDrag(y) { _drag = true; _dy0 = y; _sy0 = window.scrollY; }
 function _moveDrag(y) {
   if (!_drag) return;
   const sh = document.documentElement.scrollHeight - window.innerHeight;
-  const ratio = sh / (_track.offsetHeight - _thumb.offsetHeight);
+  const ratio = sh / (window.innerHeight - _thumb.offsetHeight);
   window.scrollTo(0, _sy0 + (y - _dy0) * ratio);
 }
 _thumb.addEventListener('mousedown', e => { _startDrag(e.clientY); e.preventDefault(); });
@@ -1018,9 +1023,8 @@ document.addEventListener('touchend', () => _drag = false);
 
 _track.addEventListener('click', e => {
   if (e.target === _thumb) return;
-  const r = _track.getBoundingClientRect();
   const sh = document.documentElement.scrollHeight - window.innerHeight;
-  window.scrollTo({top: ((e.clientY - r.top) / _track.offsetHeight) * sh, behavior:'smooth'});
+  window.scrollTo({top: (e.clientY / window.innerHeight) * sh, behavior:'smooth'});
 });
 </script>
 </body>
