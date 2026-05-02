@@ -36,6 +36,7 @@
 
     /* MAP HALF */
     #map-half{flex:0 0 50%;position:relative;background:#C4AE88;overflow:hidden;}
+    #map-overlay{position:absolute;inset:0;z-index:400;touch-action:none;}
     #map{width:100%;height:100%;filter:sepia(0.45) saturate(0.8) brightness(0.97) contrast(0.92);}
     #map-grain{position:absolute;inset:0;pointer-events:none;z-index:4;mix-blend-mode:multiply;
       background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72 0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.055'/%3E%3C/svg%3E");}
@@ -153,23 +154,7 @@
 
   <!-- MAP -->
   <div id="map-half">
-<<<<<<< HEAD
-    <nav class="top-nav">
-      <a href="index.html" class="nav-link">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-        Write · اكتب
-      </a>
-      <a href="explore.html" class="nav-link active">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-        Explore · استكشف
-      </a>
-      <a href="read.html" class="nav-link">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="1"/><line x1="12" y1="5" x2="12" y2="19"/><line x1="14" y1="9" x2="20" y2="9"/><line x1="14" y1="13" x2="20" y2="13"/><line x1="14" y1="17" x2="18" y2="17"/></svg>
-        Read · اقرأ
-      </a>
-    </nav>
-=======
->>>>>>> cabb93b
+    <div id="map-overlay"></div>
     <div id="map"></div>
     <div id="map-grain"></div>
     <div id="emirate-bar">
@@ -298,11 +283,47 @@ L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_M
 
 map.dragging.disable();
 map.touchZoom.disable();
-let _d=false,_lx=0,_ly=0,_pd=0;
-const mc=map.getContainer();
-mc.addEventListener('touchstart',e=>{if(e.touches.length===1){_d=true;_lx=e.touches[0].clientX;_ly=e.touches[0].clientY;}if(e.touches.length===2){_pd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);}e.preventDefault();},{passive:false});
-mc.addEventListener('touchmove',e=>{if(e.touches.length===1&&_d){const dx=e.touches[0].clientX-_lx,dy=e.touches[0].clientY-_ly;_lx=e.touches[0].clientX;_ly=e.touches[0].clientY;map.panBy([dy,-dx],{animate:false});}if(e.touches.length===2&&_pd>0){const nd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(Math.abs(nd-_pd)>5){nd>_pd?map.zoomIn(0.3):map.zoomOut(0.3);_pd=nd;}}e.preventDefault();},{passive:false});
-mc.addEventListener('touchend',()=>{_d=false;});
+const _ov=document.getElementById('map-overlay');
+let _mt={d:false,lx:0,ly:0,sx:0,sy:0,t0:0,pd:0};
+_ov.addEventListener('touchstart',e=>{
+  if(e.touches.length===1){
+    _mt.d=true;_mt.lx=e.touches[0].clientX;_mt.ly=e.touches[0].clientY;
+    _mt.sx=e.touches[0].clientX;_mt.sy=e.touches[0].clientY;_mt.t0=Date.now();
+  }
+  if(e.touches.length===2){
+    _mt.d=false;
+    _mt.pd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+  }
+  e.preventDefault();
+},{passive:false});
+_ov.addEventListener('touchmove',e=>{
+  if(e.touches.length===1&&_mt.d){
+    const dx=e.touches[0].clientX-_mt.lx,dy=e.touches[0].clientY-_mt.ly;
+    _mt.lx=e.touches[0].clientX;_mt.ly=e.touches[0].clientY;
+    map.panBy([dy,-dx],{animate:false});
+  }
+  if(e.touches.length===2&&_mt.pd>0){
+    const nd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+    if(Math.abs(nd-_mt.pd)>4){nd>_mt.pd?map.zoomIn(0.5):map.zoomOut(0.5);_mt.pd=nd;}
+  }
+  e.preventDefault();
+},{passive:false});
+_ov.addEventListener('touchend',e=>{
+  const dt=Date.now()-_mt.t0;
+  const moved=Math.hypot((e.changedTouches[0]?.clientX||_mt.sx)-_mt.sx,(e.changedTouches[0]?.clientY||_mt.sy)-_mt.sy);
+  if(dt<280&&moved<18&&dotData.length){
+    const tpx=e.changedTouches[0].clientX,tpy=e.changedTouches[0].clientY;
+    const tapLL=map.containerPointToLatLng(L.point(1080-tpy,tpx));
+    let best=null,bestD=Infinity;
+    dotData.forEach(item=>{
+      const ll=item.marker.getLatLng();
+      const d=Math.hypot(ll.lat-tapLL.lat,ll.lng-tapLL.lng);
+      if(d<bestD){bestD=d;best=item;}
+    });
+    if(best&&bestD<0.6)openCard(best.cardIdx);
+  }
+  _mt.d=false;_mt.pd=0;
+});
 
 // Letters scroll — physical X maps to visual vertical scroll in rotated space
 const ls=document.getElementById('letters-scroll');
@@ -363,8 +384,10 @@ document.querySelectorAll('.theme-chip').forEach(chip=>{
   });
 });
 const dotLayer=L.layerGroup().addTo(map);
+let dotData=[];
 function renderDots(cards){
   dotLayer.clearLayers();
+  dotData=[];
   cards.forEach(c=>{
     const em=ED.find(e=>e.id===c.emirate);
     if(!em)return;
@@ -372,7 +395,8 @@ function renderDots(cards){
     const jlat=((h*13)%100)/1000-0.05;
     const jlng=((h*17)%100)/1000-0.05;
     const color=EC[em.id]||'#8B5E3C';
-    L.circleMarker([em.lat+jlat,em.lng+jlng],{radius:6,fillColor:color,fillOpacity:0.8,color:'rgba(255,255,255,0.6)',weight:1.5}).addTo(dotLayer);
+    const marker=L.circleMarker([em.lat+jlat,em.lng+jlng],{radius:6,fillColor:color,fillOpacity:0.8,color:'rgba(255,255,255,0.6)',weight:1.5,interactive:false}).addTo(dotLayer);
+    dotData.push({marker,cardIdx:allCards.indexOf(c)});
   });
 }
 
