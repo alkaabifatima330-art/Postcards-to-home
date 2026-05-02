@@ -8,625 +8,464 @@
     if (_isKiosk) {
       document.documentElement.classList.add('kiosk-mode');
       const s = document.createElement('style');
-      s.textContent = `
-        html.kiosk-mode {
-          transform: rotate(-90deg);
-          transform-origin: center center;
-          width: 100vh !important;
-          height: 100vw !important;
-          position: fixed !important;
-          top: calc((100vh - 100vw) / 2) !important;
-          left: calc((100vw - 100vh) / 2) !important;
-          overflow: hidden !important;
-        }
-      `;
+      s.textContent = 'html.kiosk-mode{transform:rotate(-90deg);transform-origin:center center;width:100vh!important;height:100vw!important;position:fixed!important;top:calc((100vh - 100vw)/2)!important;left:calc((100vw - 100vh)/2)!important;overflow:hidden!important;}html.kiosk-mode body,html.kiosk-mode #wrap{height:100vw!important;}';
       document.head.appendChild(s);
     }
   </script>
-  <title>Explore — Postcards to Home · رسائل الى الوطن</title>
+  <title>Explore — Postcards to Home</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Kalam&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Kalam:wght@300;400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,400&display=swap" rel="stylesheet">
   <style>
-    @font-face { font-family:'Now'; src:url('fonts/NowAlt-Light.otf') format('opentype'); }
-    @font-face { font-family:'Massira'; src:url('fonts/alfont_com_AlFont_com_29LT-Massira-Pen.otf') format('opentype'); }
-    :root {
-      --parchment:#EDE1C8; --brown:#3A2208; --red:#CC2222;
+    @font-face{font-family:'Now';src:url('fonts/NowAlt-Light.otf') format('opentype');}
+    @font-face{font-family:'Massira';src:url('fonts/alfont_com_AlFont_com_29LT-Massira-Pen.otf') format('opentype');}
+    :root{
+      --parchment:#EDE1C8;--cream:#FAF3E2;--brown:#3A2208;--ink:#1A0E04;
+      --post-red:#CC2222;--post-navy:#1A2F6B;--sand:#B8926A;
       --font-ui:'Now','Cormorant Garamond',serif;
+      --font-en:'Kalam',cursive;--font-ar:'Massira','Kalam',cursive;
       --font-vintage:'IM Fell English',Georgia,serif;
-      --font-ar:'Massira',serif;
     }
-    * { box-sizing:border-box; margin:0; padding:0; }
-    html, body { height:100%; overflow:hidden; font-family:var(--font-ui); background:var(--parchment); }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    html,body{height:100%;overflow:hidden;font-family:var(--font-ui);background:var(--parchment);}
 
-    /* ── NAV ── */
-    .top-nav {
-      position:fixed; top:0; right:0; z-index:200;
-      display:flex; gap:0.4rem; padding:0.6rem 0.8rem;
-    }
-    .nav-link {
-      display:flex; align-items:center; gap:0.25rem;
-      font-size:0.52rem; letter-spacing:0.1em; text-transform:uppercase;
-      color:rgba(58,34,8,0.6); text-decoration:none;
-      padding:0.28rem 0.55rem; border-radius:2px;
-      border:1px solid transparent;
-      transition:all 0.15s;
-    }
-    .nav-link:hover { background:rgba(255,255,255,0.6); color:var(--brown); }
-    .nav-link.active { background:rgba(92,52,24,0.1); border-color:rgba(92,52,24,0.25); color:var(--brown); }
+    #wrap{display:flex;flex-direction:column;height:100vh;overflow:hidden;}
 
-    /* ── LAYOUT: map top, letters bottom ── */
-    #explore-wrap {
-      display:flex; flex-direction:column;
-      height:100vh; overflow:hidden;
-    }
+    /* NAV */
+    .top-nav{position:absolute;top:0;right:0;z-index:300;display:flex;gap:0.4rem;padding:0.5rem 0.8rem;}
+    .nav-link{display:inline-flex;align-items:center;gap:0.28rem;font-size:0.52rem;letter-spacing:0.14em;text-transform:uppercase;color:rgba(58,34,8,0.65);text-decoration:none;padding:0.28rem 0.6rem;border-radius:2px;border:1px solid rgba(92,52,24,0.22);background:rgba(237,225,200,0.88);transition:all 0.15s;}
+    .nav-link:hover{background:#EDE1C8;color:var(--brown);}
+    .nav-link.active{background:rgba(92,52,24,0.12);border-color:rgba(92,52,24,0.35);color:var(--brown);}
 
-    /* MAP SECTION */
-    #map-section {
-      position:relative; flex-shrink:0;
-      height:42vh; min-height:220px;
-      transition:height 0.35s cubic-bezier(0.4,0,0.2,1);
-      background:#C4AE88;
-    }
-    #map-section.expanded { height:100vh; }
-    #map-section.collapsed { height:0; min-height:0; }
+    /* MAP HALF */
+    #map-half{flex:0 0 50%;position:relative;background:#C4AE88;overflow:hidden;}
+    #map{width:100%;height:100%;filter:sepia(0.45) saturate(0.8) brightness(0.97) contrast(0.92);}
+    #map-grain{position:absolute;inset:0;pointer-events:none;z-index:4;mix-blend-mode:multiply;
+      background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72 0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.055'/%3E%3C/svg%3E");}
+    #emirate-bar{position:absolute;bottom:0;left:0;right:0;z-index:10;background:rgba(237,225,200,0.93);border-top:1px solid rgba(92,52,24,0.15);padding:0.3rem 0.9rem;display:none;align-items:center;justify-content:space-between;font-size:0.52rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--brown);}
+    #emirate-bar.show{display:flex;}
+    #emirate-bar button{background:none;border:none;cursor:pointer;font-size:0.9rem;color:rgba(58,34,8,0.45);padding:0 4px;}
+    .em-label{font-family:var(--font-vintage);font-style:italic;font-weight:bold;font-size:0.9rem;text-align:center;white-space:nowrap;line-height:1.35;cursor:pointer;pointer-events:all;text-shadow:0 0 8px rgba(205,185,148,0.98),0 0 18px rgba(205,185,148,0.9);transition:transform 0.15s;}
+    .em-label:hover{transform:scale(1.08);}
+    .em-label .em-ar{display:block;font-size:0.56rem;font-style:normal;font-family:var(--font-ui);opacity:0.8;margin-top:1px;}
+    .em-label .em-cnt{display:block;font-size:0.42rem;font-style:normal;letter-spacing:0.1em;font-family:var(--font-ui);opacity:0.7;margin-top:2px;background:rgba(205,185,148,0.65);border-radius:8px;padding:0 5px;}
+    .geo-label{font-family:var(--font-vintage);font-style:italic;color:rgba(58,34,8,0.4);white-space:nowrap;pointer-events:none;}
+    .sea-label{font-family:var(--font-vintage);font-style:italic;color:rgba(30,60,90,0.45);white-space:nowrap;pointer-events:none;}
+    .leaflet-control-zoom{margin-top:38px!important;margin-left:6px!important;}
+    .leaflet-control-zoom a{background:rgba(196,174,136,0.9)!important;color:var(--brown)!important;border-color:rgba(92,52,24,0.28)!important;font-size:1rem!important;}
+    .leaflet-control-attribution{font-size:7px!important;opacity:0.2;background:transparent!important;}
 
-    #map {
-      width:100%; height:100%;
-      filter:sepia(0.45) saturate(0.8) brightness(0.97) contrast(0.92);
-    }
+    /* LETTERS HALF */
+    #letters-half{flex:0 0 50%;display:flex;flex-direction:column;overflow:hidden;border-top:2px solid rgba(92,52,24,0.15);}
 
-    /* map grain overlay */
-    #map-grain {
-      position:absolute; inset:0; pointer-events:none; z-index:5;
-      background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72 0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.055'/%3E%3C/svg%3E");
-    }
+    /* FILTER BAR */
+    #filter-bar{flex-shrink:0;background:rgba(250,246,237,0.97);border-bottom:1px solid rgba(92,52,24,0.12);padding:0.5rem 0.85rem;display:flex;flex-direction:column;gap:0.4rem;}
+    .search-row{position:relative;}
+    .search-input{width:100%;font-family:var(--font-ui);font-size:0.78rem;color:var(--ink);background:rgba(255,255,255,0.85);border:1px solid rgba(92,52,24,0.18);border-radius:2px;padding:0.4rem 2rem 0.4rem 1.9rem;outline:none;}
+    .search-input::placeholder{color:rgba(58,34,8,0.3);font-style:italic;}
+    .search-icon{position:absolute;left:0.6rem;top:50%;transform:translateY(-50%);opacity:0.35;font-size:0.78rem;pointer-events:none;}
+    .search-clear-btn{position:absolute;right:0.5rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;opacity:0.35;font-size:0.85rem;color:var(--brown);display:none;}
+    .search-clear-btn.show{display:block;}
+    .dropdowns-row{display:flex;gap:0.5rem;flex-wrap:wrap;}
+    .filter-group{display:flex;flex-direction:column;gap:0.18rem;}
+    .filter-lbl{font-size:0.42rem;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:rgba(92,52,24,0.45);}
+    .filter-select{font-family:var(--font-ui);font-size:0.7rem;color:var(--brown);background:rgba(255,255,255,0.85);border:1px solid rgba(92,52,24,0.18);border-radius:2px;padding:0.28rem 1.5rem 0.28rem 0.5rem;appearance:none;outline:none;min-width:140px;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='5'%3E%3Cpath d='M0 0l4.5 5 4.5-5z' fill='%233A2208' opacity='.4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 0.4rem center;}
+    .filter-select:disabled{opacity:0.4;cursor:not-allowed;}
+    .theme-row{display:flex;flex-wrap:wrap;gap:0.3rem;align-items:center;}
+    .filter-theme-lbl{font-size:0.42rem;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:rgba(92,52,24,0.45);margin-right:0.1rem;white-space:nowrap;}
+    .theme-chip{font-family:var(--font-ui);font-size:0.52rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--brown);border:1px solid rgba(92,52,24,0.18);background:rgba(255,255,255,0.55);padding:0.22rem 0.55rem;border-radius:2px;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+    .theme-chip:hover{background:rgba(255,255,255,0.9);}
+    .theme-chip.active{background:var(--post-red);color:#fff;border-color:var(--post-red);}
+    .result-count{font-size:0.5rem;color:var(--brown);opacity:0.4;letter-spacing:0.08em;margin-left:auto;}
 
-    /* expand / collapse map button */
-    #map-toggle {
-      position:absolute; bottom:8px; left:50%; transform:translateX(-50%);
-      z-index:50; background:rgba(237,225,200,0.9); border:1px solid rgba(92,52,24,0.3);
-      border-radius:20px; padding:5px 18px; cursor:pointer;
-      font-family:var(--font-ui); font-size:0.52rem; letter-spacing:0.1em;
-      text-transform:uppercase; color:var(--brown);
-      transition:background 0.15s;
-      display:flex; align-items:center; gap:0.4rem;
-    }
-    #map-toggle:hover { background:#EDE1C8; }
+    /* LETTERS SCROLL */
+    #letters-scroll{flex:1;overflow-y:auto;overflow-x:hidden;padding:0.65rem 0.85rem 2rem;}
+    .letters-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0.9rem;}
 
-    /* selected emirate chip on map */
-    #selected-chip {
-      position:absolute; top:8px; left:8px; z-index:50;
-      background:rgba(204,34,34,0.9); color:#fff;
-      border-radius:20px; padding:4px 14px;
-      font-size:0.55rem; letter-spacing:0.08em; text-transform:uppercase;
-      display:none; align-items:center; gap:6px; cursor:pointer;
-    }
-    #selected-chip.show { display:flex; }
-    #selected-chip .chip-x { font-size:0.8rem; line-height:1; opacity:0.8; }
+    /* CARDS — same as read.html */
+    .card-scene-wrap{transition:transform 0.22s cubic-bezier(0.34,1.56,0.64,1);}
+    .card-scene-wrap:hover{transform:translateY(-3px);}
+    .card-scene{width:100%;aspect-ratio:3/2;perspective:1200px;cursor:pointer;}
+    .card-inner{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform 0.6s cubic-bezier(0.4,0,0.2,1);}
+    .card-scene:hover .card-inner{transform:rotateY(180deg);}
+    .card-face{position:absolute;inset:0;backface-visibility:hidden;border-radius:2px;overflow:hidden;}
+    .card-back-face{transform:rotateY(180deg);}
+    .card-front-inner{height:100%;display:flex;position:relative;}
+    .card-message-col{flex:1;padding:0.38rem 0.48rem 0.32rem 0.6rem;border-right:1px solid rgba(92,52,24,0.1);display:flex;flex-direction:column;position:relative;background-image:repeating-linear-gradient(transparent,transparent calc(1.42rem - 1px),rgba(92,52,24,0.07) calc(1.42rem - 1px),rgba(92,52,24,0.07) 1.42rem);}
+    .pc-ghost{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.06;z-index:0;pointer-events:none;}
+    .card-top-row{display:flex;align-items:center;gap:0.32rem;margin-bottom:0.12rem;position:relative;z-index:1;}
+    .card-top-label{font-family:var(--font-ui);font-size:0.36rem;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:rgba(92,52,24,0.38);white-space:nowrap;}
+    .card-theme-pill{display:inline-flex;font-family:var(--font-ui);font-size:0.32rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:rgba(61,85,53,0.7);border:1px solid rgba(61,85,53,0.3);padding:0.04rem 0.26rem;border-radius:1px;white-space:nowrap;}
+    .card-msg-text{font-family:var(--font-en);font-size:0.76rem;color:var(--ink);line-height:1.42rem;position:relative;z-index:1;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;flex:1;}
+    .card-msg-text[dir="rtl"]{font-family:var(--font-ar);text-align:right;}
+    .card-right-col{width:105px;min-width:95px;padding:0.35rem 0.42rem;display:flex;flex-direction:column;gap:0.22rem;}
+    .card-stamp-wrap{display:flex;justify-content:flex-end;position:relative;margin-bottom:0.1rem;}
+    .card-stamp{width:38px;height:46px;overflow:hidden;background:#EDE0C4;box-shadow:1px 2px 4px rgba(50,22,8,0.15);
+      -webkit-mask:radial-gradient(circle at 50% 0,transparent 3.5px,#000 4px) top/10px 7px repeat-x,radial-gradient(circle at 50% 100%,transparent 3.5px,#000 4px) bottom/10px 7px repeat-x,radial-gradient(circle at 0 50%,transparent 3.5px,#000 4px) left/7px 10px repeat-y,radial-gradient(circle at 100% 50%,transparent 3.5px,#000 4px) right/7px 10px repeat-y,linear-gradient(#000 0 0) center/calc(100% - 7px) calc(100% - 7px) no-repeat;
+      mask:radial-gradient(circle at 50% 0,transparent 3.5px,#000 4px) top/10px 7px repeat-x,radial-gradient(circle at 50% 100%,transparent 3.5px,#000 4px) bottom/10px 7px repeat-x,radial-gradient(circle at 0 50%,transparent 3.5px,#000 4px) left/7px 10px repeat-y,radial-gradient(circle at 100% 50%,transparent 3.5px,#000 4px) right/7px 10px repeat-y,linear-gradient(#000 0 0) center/calc(100% - 7px) calc(100% - 7px) no-repeat;}
+    .card-stamp img{width:100%;height:100%;object-fit:cover;display:block;}
+    .card-stamp-empty{width:38px;height:46px;border:1.5px dashed rgba(92,52,24,0.2);border-radius:1px;background:#F0E5CC;display:flex;align-items:center;justify-content:center;}
+    .card-stamp-empty span{font-size:0.28rem;text-transform:uppercase;letter-spacing:0.06em;color:rgba(92,52,24,0.3);text-align:center;}
+    .card-postmark{position:absolute;top:-4px;right:-3px;width:26px;height:26px;opacity:0.3;transform:rotate(-10deg);pointer-events:none;object-fit:contain;mix-blend-mode:multiply;}
+    .card-divider{height:1px;border-top:1px dashed rgba(92,52,24,0.12);}
+    .card-addr-lbl{font-family:var(--font-ui);font-size:0.36rem;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:rgba(92,52,24,0.5);display:block;margin-bottom:0.06rem;}
+    .card-addr-name{font-family:var(--font-en);font-size:0.72rem;color:var(--ink);display:block;border-bottom:1px solid rgba(92,52,24,0.12);padding-bottom:0.05rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .card-addr-loc{font-family:var(--font-ui);font-size:0.42rem;color:var(--brown);opacity:0.5;display:block;margin-top:0.05rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .card-from-block{margin-top:auto;}
+    .card-date{font-family:var(--font-ui);font-size:0.36rem;color:var(--brown);opacity:0.3;display:block;margin-top:0.18rem;}
+    .frame-wrap{border-radius:2px;overflow:hidden;}
+    .frame-wrap.f-airmail{padding:3px;background:repeating-linear-gradient(-45deg,#B5372A 0,#B5372A 5px,#2E4F82 5px,#2E4F82 10px);}
+    .frame-wrap.f-cream{border:2px solid rgba(107,63,30,0.28);}
+    .frame-wrap.f-blue{border:2.5px solid #2E4F82;}
+    .frame-wrap.f-kraft{padding:3px;background:#7A5A2A;}
+    .frame-wrap.f-ivory{border:1.5px solid rgba(107,63,30,0.18);}
+    .card-flip-hint{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);font-family:var(--font-ui);font-size:0.34rem;letter-spacing:0.1em;text-transform:uppercase;color:rgba(92,52,24,0.3);background:rgba(255,255,255,0.55);padding:2px 6px;border-radius:10px;pointer-events:none;z-index:10;white-space:nowrap;}
+    .card-scene:hover .card-flip-hint{color:rgba(92,52,24,0.6);}
+    .card-back-inner{height:100%;position:relative;overflow:hidden;background:linear-gradient(155deg,#7A4825,#A0632E,#C4956A);}
+    .card-back-inner img.back-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;}
+    .card-back-grad{position:absolute;inset:0;z-index:1;background:linear-gradient(to top,rgba(10,3,0,0.8) 0%,rgba(10,3,0,0.2) 50%,transparent 100%);}
+    .card-back-content{position:absolute;bottom:0;left:0;right:0;z-index:2;padding:0.65rem 0.85rem 0.65rem;}
+    .card-back-to{font-family:var(--font-ui);font-style:italic;font-size:clamp(0.82rem,2vw,1.15rem);color:rgba(255,255,255,0.97);line-height:1.2;text-shadow:0 2px 12px rgba(0,0,0,0.5);display:block;margin-bottom:0.12rem;}
+    .card-back-loc{font-family:var(--font-ui);font-size:0.46rem;color:rgba(255,255,255,0.55);letter-spacing:0.16em;text-transform:uppercase;}
+    .card-back-no-photo{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;color:rgba(255,255,255,0.4);}
+    .card-back-no-photo span{font-size:0.48rem;letter-spacing:0.1em;text-transform:uppercase;font-family:var(--font-ui);margin-top:0.35rem;}
+    .card-photo-btn{display:none;position:absolute;bottom:0.42rem;left:0.48rem;z-index:10;font-family:var(--font-ui);font-size:0.4rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:rgba(92,52,24,0.55);background:rgba(255,255,255,0.7);border:1px solid rgba(92,52,24,0.2);border-radius:2px;padding:0.22rem 0.48rem;cursor:pointer;align-items:center;backdrop-filter:blur(4px);}
+    .card-open-btn{position:absolute;top:0.48rem;right:0.48rem;z-index:10;font-family:var(--font-ui);font-size:0.42rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.85);background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.3);border-radius:2px;padding:0.24rem 0.52rem;cursor:pointer;backdrop-filter:blur(4px);}
+    .card-open-btn:hover{background:rgba(0,0,0,0.55);}
+    .empty-state{text-align:center;padding:3rem 1rem;color:var(--brown);opacity:0.45;font-family:var(--font-vintage);font-style:italic;font-size:0.9rem;grid-column:1/-1;}
 
-    /* leaflet label styles */
-    .em-label {
-      font-family:var(--font-vintage); font-style:italic; font-size:0.85rem;
-      color:#8B5E3C; cursor:pointer; white-space:nowrap;
-      text-shadow:1px 1px 3px rgba(255,248,215,0.8), -1px -1px 3px rgba(255,248,215,0.8);
-    }
-    .em-label:hover { opacity:0.75; }
-    .em-ar { display:block; font-size:0.68rem; font-family:var(--font-ar); font-style:normal; margin-top:1px; }
-    .em-cnt { display:block; font-size:0.48rem; font-family:var(--font-ui); font-style:normal; letter-spacing:0.08em; opacity:0.6; margin-top:2px; }
-    .sea-label { font-family:var(--font-vintage); font-style:italic; color:rgba(58,100,140,0.55); white-space:nowrap; pointer-events:none; }
-    .geo-label { font-family:var(--font-ui); letter-spacing:0.16em; color:rgba(58,34,8,0.3); pointer-events:none; }
-    .city-label { font-family:var(--font-vintage); font-style:italic; color:rgba(58,34,8,0.4); pointer-events:none; }
-    .leaflet-control-zoom { margin-top:40px !important; margin-left:6px !important; }
-    .leaflet-control-zoom a { background:rgba(196,174,136,0.9)!important; color:var(--brown)!important; border-color:rgba(92,52,24,0.28)!important; font-size:1rem!important; }
-    .leaflet-control-attribution { font-size:7px!important; opacity:0.25; background:transparent!important; }
+    /* MODAL */
+    .pc-modal-backdrop{display:none;position:fixed;inset:0;z-index:500;background:rgba(12,6,2,0.85);backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:1.5rem;}
+    .pc-modal-backdrop.open{display:flex;}
+    .pc-modal-close{position:fixed;top:1rem;right:1rem;z-index:510;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;font-size:1.1rem;cursor:pointer;display:none;align-items:center;justify-content:center;}
+    .pc-modal-close:hover{background:#000;}
 
-    /* ── LETTERS SECTION ── */
-    #letters-section {
-      flex:1; overflow-y:auto; background:var(--parchment);
-      border-top:2px solid rgba(92,52,24,0.12);
+    @media(orientation:portrait){
+      .letters-grid{grid-template-columns:1fr;}
+      .card-scene:hover .card-inner{transform:none;}
+      .card-scene.photo-peek .card-inner{transform:rotateY(180deg);}
+      .card-photo-btn{display:flex!important;}
+      .card-flip-hint{display:none;}
+      .dropdowns-row{flex-direction:column;}
+      .filter-select{min-width:100%;}
     }
-
-    /* filter bar */
-    #filter-bar {
-      position:sticky; top:0; z-index:100;
-      background:var(--parchment);
-      border-bottom:1px solid rgba(92,52,24,0.1);
-      padding:0.6rem 1rem;
-    }
-    #emirate-tabs {
-      display:flex; gap:0.3rem; flex-wrap:nowrap; overflow-x:auto;
-      padding-bottom:0.4rem; margin-bottom:0.4rem;
-      scrollbar-width:none;
-    }
-    #emirate-tabs::-webkit-scrollbar { display:none; }
-    .em-tab {
-      flex-shrink:0; padding:0.22rem 0.65rem; border-radius:2px;
-      border:1px solid rgba(92,52,24,0.2); background:rgba(255,255,255,0.5);
-      font-size:0.52rem; letter-spacing:0.08em; text-transform:uppercase;
-      color:rgba(58,34,8,0.65); cursor:pointer; transition:all 0.15s;
-      white-space:nowrap;
-    }
-    .em-tab:hover { background:rgba(255,255,255,0.8); }
-    .em-tab.active { color:#fff; border-color:transparent; }
-
-    #theme-tabs {
-      display:flex; gap:0.3rem; flex-wrap:wrap;
-    }
-    .th-tab {
-      padding:0.18rem 0.55rem; border-radius:2px;
-      border:1px solid rgba(92,52,24,0.18); background:transparent;
-      font-size:0.48rem; letter-spacing:0.08em; text-transform:uppercase;
-      color:rgba(58,34,8,0.5); cursor:pointer; transition:all 0.15s;
-    }
-    .th-tab.active { background:var(--red); color:#fff; border-color:var(--red); }
-
-    #result-label {
-      font-size:0.48rem; letter-spacing:0.1em; color:rgba(58,34,8,0.4);
-      text-transform:uppercase; margin-top:0.3rem;
-    }
-
-    /* letter cards */
-    #letters-grid {
-      padding:0.8rem 1rem 3rem;
-      display:flex; flex-direction:column; gap:0.8rem;
-    }
-
-    .ltr-card {
-      background:#FAF3E2; border-radius:3px;
-      padding:0.9rem 1rem;
-      box-shadow:0 2px 8px rgba(50,22,8,0.1), 0 6px 20px rgba(50,22,8,0.07);
-      cursor:pointer; transition:transform 0.15s, box-shadow 0.15s;
-      border-left:3px solid transparent;
-      position:relative;
-    }
-    .ltr-card:hover { transform:translateY(-2px); box-shadow:0 4px 16px rgba(50,22,8,0.14), 0 10px 30px rgba(50,22,8,0.1); }
-    .ltr-card-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.45rem; }
-    .ltr-card-to { font-size:0.52rem; letter-spacing:0.1em; text-transform:uppercase; color:rgba(58,34,8,0.45); }
-    .ltr-card-theme { font-size:0.44rem; padding:0.1rem 0.4rem; border-radius:1px; border:1px solid currentColor; opacity:0.7; }
-    .ltr-card-msg { font-family:var(--font-vintage); font-style:italic; font-size:0.82rem; line-height:1.6; color:var(--brown); margin-bottom:0.5rem; }
-    .ltr-card-msg.ar { font-family:var(--font-ar); direction:rtl; text-align:right; }
-    .ltr-card-footer { display:flex; justify-content:space-between; align-items:center; }
-    .ltr-card-from { font-size:0.5rem; letter-spacing:0.1em; text-transform:uppercase; color:rgba(58,34,8,0.5); }
-    .ltr-card-loc { font-size:0.44rem; color:rgba(58,34,8,0.4); }
-    .ltr-card-photo { width:36px; height:36px; border-radius:2px; object-fit:cover; opacity:0.85; }
-
-    /* no letters */
-    #no-letters {
-      text-align:center; padding:3rem 1rem;
-      font-family:var(--font-vintage); font-style:italic;
-      color:rgba(58,34,8,0.4); font-size:0.9rem; display:none;
-    }
-
-    /* ── LETTER MODAL ── */
-    #ltr-modal {
-      position:fixed; inset:0; z-index:500;
-      background:rgba(12,6,2,0.82); backdrop-filter:blur(8px);
-      display:none; align-items:center; justify-content:center;
-      padding:1.5rem;
-    }
-    #ltr-modal.open { display:flex; }
-    #ltr-modal-box {
-      background:#FAF3E2; border-radius:4px; width:100%; max-width:520px;
-      max-height:90vh; overflow-y:auto;
-      box-shadow:0 24px 80px rgba(0,0,0,0.5);
-    }
-    #ltr-modal-close {
-      position:fixed; top:1rem; right:1rem; z-index:510;
-      width:32px; height:32px; border-radius:50%;
-      background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3);
-      color:#fff; font-size:1.1rem; cursor:pointer;
-      display:flex; align-items:center; justify-content:center;
-    }
-    #ltr-modal-nav {
-      position:fixed; bottom:1.5rem; left:50%; transform:translateX(-50%);
-      display:flex; gap:0.6rem; z-index:510;
-    }
-    .modal-nav-btn {
-      padding:0.4rem 1.2rem; border-radius:20px;
-      background:rgba(237,225,200,0.9); border:1px solid rgba(92,52,24,0.3);
-      color:var(--brown); font-family:var(--font-ui); font-size:0.65rem;
-      letter-spacing:0.08em; cursor:pointer;
-    }
-    .modal-nav-btn:disabled { opacity:0.3; cursor:default; }
   </style>
 </head>
 <body>
-
-<nav class="top-nav">
-  <a href="index.html" class="nav-link">
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-    Write · اكتب
-  </a>
-  <a href="explore.html" class="nav-link active">
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-    Explore · استكشف
-  </a>
-  <a href="read.html" class="nav-link">
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="1"/><line x1="12" y1="5" x2="12" y2="19"/><line x1="14" y1="9" x2="20" y2="9"/><line x1="14" y1="13" x2="20" y2="13"/><line x1="14" y1="17" x2="18" y2="17"/></svg>
-    Read · اقرأ
-  </a>
-</nav>
-
-<div id="explore-wrap">
+<div id="wrap">
 
   <!-- MAP -->
-  <div id="map-section">
+  <div id="map-half">
+    <nav class="top-nav">
+      <a href="index.html" class="nav-link">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+        Write · اكتب
+      </a>
+      <a href="explore.html" class="nav-link active">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+        Explore · استكشف
+      </a>
+      <a href="read.html" class="nav-link">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="1"/><line x1="12" y1="5" x2="12" y2="19"/><line x1="14" y1="9" x2="20" y2="9"/><line x1="14" y1="13" x2="20" y2="13"/><line x1="14" y1="17" x2="18" y2="17"/></svg>
+        Read · اقرأ
+      </a>
+    </nav>
     <div id="map"></div>
     <div id="map-grain"></div>
-    <div id="selected-chip" onclick="clearEmirate()">
-      <span id="selected-chip-name"></span>
-      <span class="chip-x">✕</span>
+    <div id="emirate-bar">
+      <span id="emirate-bar-name"></span>
+      <button onclick="clearEmirateFilter()">✕ All</button>
     </div>
-    <button id="map-toggle" onclick="toggleMap()">
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-      <span id="map-toggle-label">Hide Map · إخفاء الخريطة</span>
-    </button>
   </div>
 
   <!-- LETTERS -->
-  <div id="letters-section">
+  <div id="letters-half">
     <div id="filter-bar">
-      <div id="emirate-tabs">
-        <button class="em-tab active" style="background:rgba(58,34,8,0.7);color:#fff;border-color:transparent;" onclick="selectEmirate(null,this)">All · الكل</button>
-        <button class="em-tab" style="--c:#8B5E3C" onclick="selectEmirate('Abu Dhabi',this)">Abu Dhabi · أبوظبي</button>
-        <button class="em-tab" onclick="selectEmirate('Dubai',this)">Dubai · دبي</button>
-        <button class="em-tab" onclick="selectEmirate('Sharjah',this)">Sharjah · الشارقة</button>
-        <button class="em-tab" onclick="selectEmirate('Ajman',this)">Ajman · عجمان</button>
-        <button class="em-tab" onclick="selectEmirate('Umm Al Quwain',this)">UAQ · أم القيوين</button>
-        <button class="em-tab" onclick="selectEmirate('Ras Al Khaimah',this)">RAK · رأس الخيمة</button>
-        <button class="em-tab" onclick="selectEmirate('Fujairah',this)">Fujairah · الفجيرة</button>
+      <div class="search-row">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" id="search-input" type="text" placeholder="Search… · ابحث" oninput="onSearch(this.value)">
+        <button class="search-clear-btn" id="search-clear-btn" onclick="clearSearch()">✕</button>
       </div>
-      <div id="theme-tabs">
-        <button class="th-tab" onclick="selectTheme('I Miss',this)">I Miss · أفتقد</button>
-        <button class="th-tab" onclick="selectTheme('I Love',this)">I Love · أحب</button>
-        <button class="th-tab" onclick="selectTheme('I Long For',this)">I Long For · أشتاق</button>
-        <button class="th-tab" onclick="selectTheme('I Remember',this)">I Remember · أتذكر</button>
+      <div class="dropdowns-row">
+        <div class="filter-group">
+          <span class="filter-lbl">Emirate · الإمارة</span>
+          <select class="filter-select" id="f-location" onchange="onLocationChange()">
+            <option value="">All · الكل</option>
+            <option value="Abu Dhabi">Abu Dhabi · أبوظبي</option>
+            <option value="Dubai">Dubai · دبي</option>
+            <option value="Sharjah">Sharjah · الشارقة</option>
+            <option value="Ajman">Ajman · عجمان</option>
+            <option value="Umm Al Quwain">Umm Al Quwain · أم القيوين</option>
+            <option value="Ras Al Khaimah">Ras Al Khaimah · رأس الخيمة</option>
+            <option value="Fujairah">Fujairah · الفجيرة</option>
+            <option value="INTL">International · دولي</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <span class="filter-lbl">Neighborhood · الحي</span>
+          <select class="filter-select" id="f-neighborhood" onchange="applyFilters()" disabled>
+            <option value="">All · الكل</option>
+          </select>
+        </div>
       </div>
-      <div id="result-label">— letters —</div>
+      <div class="theme-row">
+        <span class="filter-theme-lbl">Theme · الموضوع</span>
+        <button class="theme-chip active" data-theme="">All · الكل</button>
+        <button class="theme-chip" data-theme="I Miss">I Miss · أفتقد</button>
+        <button class="theme-chip" data-theme="I Love">I Love · أحب</button>
+        <button class="theme-chip" data-theme="I Long For">I Long For · أشتاق</button>
+        <button class="theme-chip" data-theme="I Remember">I Remember · أتذكر</button>
+        <span class="result-count" id="result-count"></span>
+      </div>
     </div>
-    <div id="letters-grid"></div>
-    <div id="no-letters">No letters here yet · لا رسائل هنا بعد</div>
+    <div id="letters-scroll">
+      <div class="letters-grid" id="letters-grid"></div>
+    </div>
   </div>
 </div>
 
-<!-- Letter Modal -->
-<div id="ltr-modal" onclick="if(event.target===this)closeLtrModal()">
-  <button id="ltr-modal-close" onclick="closeLtrModal()">✕</button>
-  <div id="ltr-modal-box"></div>
-  <div id="ltr-modal-nav">
-    <button class="modal-nav-btn" id="modal-prev" onclick="modalNav(-1)">‹ Prev</button>
-    <button class="modal-nav-btn" id="modal-next" onclick="modalNav(1)">Next ›</button>
+<!-- Modal -->
+<div class="pc-modal-backdrop" id="pc-modal" onclick="if(event.target===this)closeModalBtn()">
+  <div style="width:100%;max-width:860px;">
+    <div style="display:flex;justify-content:center;margin-bottom:0.65rem;">
+      <button id="modal-flip-btn" onclick="toggleModalFlip()" style="font-family:var(--font-ui);font-size:0.58rem;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.8);background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);padding:0.38rem 1.1rem;border-radius:20px;cursor:pointer;backdrop-filter:blur(4px);display:inline-flex;align-items:center;gap:0.4rem;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg>
+        Flip to Photo · اقلب للصورة
+      </button>
+    </div>
+    <div id="pc-modal-inner-wrap">
+      <div id="pc-modal-writing"><div id="pc-modal-content"></div></div>
+      <div id="pc-modal-photo" style="display:none;border-radius:3px;overflow:hidden;aspect-ratio:3/2;background:linear-gradient(155deg,#7A4825,#A0632E,#C4956A);position:relative;">
+        <img id="pc-modal-photo-img" src="" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">
+        <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(10,3,0,0.8) 0%,rgba(10,3,0,0.15) 55%,transparent 100%);"></div>
+        <div style="position:absolute;bottom:0;left:0;right:0;padding:2rem 2.2rem 1.8rem;">
+          <span id="pc-modal-photo-to" style="font-family:var(--font-ui);font-style:italic;font-size:clamp(1.5rem,3vw,2.2rem);color:rgba(255,255,255,0.97);display:block;margin-bottom:0.3rem;text-shadow:0 2px 18px rgba(0,0,0,0.5);"></span>
+          <span id="pc-modal-photo-loc" style="font-family:var(--font-ui);font-size:0.62rem;color:rgba(255,255,255,0.55);letter-spacing:0.2em;text-transform:uppercase;"></span>
+        </div>
+        <div id="pc-modal-no-photo" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:rgba(255,255,255,0.4);">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          <span style="font-family:var(--font-ui);font-size:0.6rem;letter-spacing:0.14em;text-transform:uppercase;margin-top:0.6rem;">No photo · لا توجد صورة</span>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
+<button class="pc-modal-close" id="pc-modal-close-btn" onclick="closeModalBtn()">✕</button>
 
 <script>
-// ── Supabase ──
-const _sb = supabase.createClient(
-  'https://wyzkqhzekjpuhtinskou.supabase.co',
-  'sb_publishable_FyUsXFFI_gMgk6gQlRhMMg_Y0NB7cQE'
-);
+const NBS={'Abu Dhabi':['Al Khalidiyah','Al Markaziyah','Al Bateen','Khalifa City A','Yas Island','Mussafah','Corniche Road','Al Mushrif','Al Nahyan','Al Reem Island','Saadiyat Island','Al Ain Downtown','Al Ain Oasis','Al Hili','Ruwais','Liwa'],'Dubai':['Deira','Bur Dubai','Jumeirah','Al Quoz','Dubai Marina','Downtown Dubai','Al Barsha','Karama','Al Satwa','Al Garhoud','Mirdif','Jebel Ali','International City','The Palm Jumeirah','Business Bay','DIFC','Al Mamzar','Al Wasl','Umm Suqeim','Al Nahda','JVC','JLT'],'Sharjah':['Al Majaz','Al Qasimia','Al Nahda','Muwaileh','Khor Fakkan','Kalba','Al Taawun','Al Wahda','Al Zahraa','University City'],'Ajman':['Al Nuaimiyah','Al Rashidiyah','Al Jurf','Al Hamidiyah','Al Rawdah','Al Rumaila'],'Umm Al Quwain':['UAQ City','Al Salamah','Al Raas','Falaj Al Mualla'],'Ras Al Khaimah':['Al Nakheel','Al Hamra','Mina Al Arab','Al Rams','Al Marjan Island','Khatt'],'Fujairah':['Fujairah City','Dibba Al Fujairah','Masafi','Al Aqah','Kalba']};
+const FC=['f-airmail','f-cream','f-blue','f-kraft','f-ivory'];
+const PC=['#FAF3E2','#EDE0C0','#E8EFF8','#D9BC8A','#FDFAF0'];
+const FS=['padding:5px;background:repeating-linear-gradient(-45deg,#B5372A 0,#B5372A 8px,#2E4F82 8px,#2E4F82 16px);','padding:0;border:2.5px solid rgba(107,63,30,0.28);background:transparent;','padding:0;border:3px solid #2E4F82;background:transparent;','padding:5px;background:#7A5A2A;','padding:0;border:1.5px solid rgba(107,63,30,0.18);background:transparent;'];
+const EC={'Abu Dhabi':'#8B5E3C','Dubai':'#B5372A','Sharjah':'#2E5FA3','Ajman':'#4A8047','Umm Al Quwain':'#7A4A8B','Ras Al Khaimah':'#3A6B8B','Fujairah':'#7A4A20'};
+const ED=[{id:'Abu Dhabi',ar:'أبوظبي',lat:23.90,lng:54.00},{id:'Dubai',ar:'دبي',lat:25.18,lng:55.20},{id:'Sharjah',ar:'الشارقة',lat:25.36,lng:55.50},{id:'Ajman',ar:'عجمان',lat:25.415,lng:55.545},{id:'Umm Al Quwain',ar:'أم القيوين',lat:25.585,lng:55.60},{id:'Ras Al Khaimah',ar:'رأس الخيمة',lat:25.79,lng:55.97},{id:'Fujairah',ar:'الفجيرة',lat:25.12,lng:56.35}];
 
-// ── Emirate colours ──
-const EMIRATE_COLOR = {
-  'Abu Dhabi':'#8B5E3C','Dubai':'#B5372A','Sharjah':'#2E5FA3',
-  'Ajman':'#4A8047','Umm Al Quwain':'#7A4A8B','Ras Al Khaimah':'#3A6B8B','Fujairah':'#7A4A20'
-};
-const EMIRATE_DATA = [
-  { id:'Abu Dhabi',      ar:'أبوظبي',     lat:23.90,  lng:54.00 },
-  { id:'Dubai',          ar:'دبي',         lat:25.18,  lng:55.20 },
-  { id:'Sharjah',        ar:'الشارقة',    lat:25.36,  lng:55.50 },
-  { id:'Ajman',          ar:'عجمان',       lat:25.415, lng:55.545 },
-  { id:'Umm Al Quwain',  ar:'أم القيوين', lat:25.585, lng:55.60 },
-  { id:'Ras Al Khaimah', ar:'رأس الخيمة', lat:25.79,  lng:55.97 },
-  { id:'Fujairah',       ar:'الفجيرة',    lat:25.12,  lng:56.35 },
+const _sb=supabase.createClient('https://wyzkqhzekjpuhtinskou.supabase.co','sb_publishable_FyUsXFFI_gMgk6gQlRhMMg_Y0NB7cQE');
+const dbR=r=>({id:r.id,to:r.to||'',from:r.from||'',message:r.message||'',theme:r.theme||'',emirate:r.emirate||'',neighborhood:r.neighborhood||'',location:r.location||'',fromLocation:r.from_location||'',stampSrc:r.stamp_src||'',sceneSrc:r.scene_src||'',styleIdx:r.style_idx||0,date:r.date||''});
+
+const SAMPLES=[
+  {id:'s1',to:'Al Fahidi',from:'Nour',message:'The smell of cardamom coffee on Friday mornings. The way the creek reflected the old dhows before everything changed around us.',theme:'I Remember',emirate:'Dubai',neighborhood:'Bur Dubai',location:'Bur Dubai, Dubai',stampSrc:'',sceneSrc:'',styleIdx:0,date:'01/04/2026'},
+  {id:'s2',to:'My old street',from:'Mariam',message:'I left ten years ago and still dream about the corniche at sunset — the fountain, children chasing pigeons near the water.',theme:'I Long For',emirate:'Sharjah',neighborhood:'Al Majaz',location:'Al Majaz, Sharjah',stampSrc:'',sceneSrc:'',styleIdx:1,date:'02/04/2026'},
+  {id:'s3',to:'Jaddi',from:'Anonymous',message:'Every Eid we walked from Khalidiyah to the corniche. The sea breeze. The sound of your stories. I still hear them.',theme:'I Love',emirate:'Abu Dhabi',neighborhood:'Al Khalidiyah',location:'Al Khalidiyah, Abu Dhabi',stampSrc:'',sceneSrc:'',styleIdx:0,date:'02/04/2026'},
+  {id:'s4',to:'السوق القديم',from:'خالد',message:'رائحة الهيل والقهوة في الفجر — شيوخ يشربون الشاي قبل أن تأتي الحرارة. أنتِ لا تزالين وطناً.',theme:'I Remember',emirate:'Dubai',neighborhood:'Deira',location:'Deira, Dubai',stampSrc:'',sceneSrc:'',styleIdx:3,date:'03/04/2026'},
+  {id:'s5',to:"Baba's fishing boat",from:'Sara',message:"You took me fishing every Thursday before school. The Gulf was calm, the world was quiet, and I felt completely safe.",theme:'I Love',emirate:'Ras Al Khaimah',neighborhood:'Al Rams',location:'Al Rams, RAK',stampSrc:'',sceneSrc:'',styleIdx:2,date:'03/04/2026'},
+  {id:'s6',to:'My classroom',from:'Fatima',message:'Room 7, Al Qasimia school. The chalk smell, the ceiling fan, Mrs. Hind writing on the board. You shaped everything I am.',theme:'I Remember',emirate:'Sharjah',neighborhood:'Al Qasimia',location:'Al Qasimia, Sharjah',stampSrc:'',sceneSrc:'',styleIdx:0,date:'04/04/2026'},
+  {id:'s7',to:'The creek at low tide',from:'Yusuf',message:'Dibba before the hotels. Just the mountains, the sea, and fishermen untangling their nets. I miss that quietness so much.',theme:'I Miss',emirate:'Fujairah',neighborhood:'Dibba Al Fujairah',location:'Dibba, Fujairah',stampSrc:'',sceneSrc:'',styleIdx:1,date:'04/04/2026'},
+  {id:'s8',to:"Grandma's kitchen",from:'Layla',message:"The smell of thareed on Fridays. She'd start at dawn and by noon the whole building knew. I would give anything to eat there again.",theme:'I Long For',emirate:'Abu Dhabi',neighborhood:'Al Mushrif',location:'Al Mushrif, Abu Dhabi',stampSrc:'',sceneSrc:'',styleIdx:0,date:'05/04/2026'},
+  {id:'s9',to:'UAQ corniche',from:'Hassan',message:"The smallest emirate with the biggest sky. I never appreciated you until I was gone. That quiet is something I chase everywhere now.",theme:'I Miss',emirate:'Umm Al Quwain',neighborhood:'UAQ City',location:'UAQ City',stampSrc:'',sceneSrc:'',styleIdx:1,date:'06/04/2026'},
+  {id:'s10',to:'My first apartment',from:'Omar',message:"Al Nuaimiyah, 2008. Twelve of us in a two bedroom. We were poor and didn't know it. Those were the richest years.",theme:'I Remember',emirate:'Ajman',neighborhood:'Al Nuaimiyah',location:'Al Nuaimiyah, Ajman',stampSrc:'',sceneSrc:'',styleIdx:0,date:'06/04/2026'},
 ];
 
-// ── Sample letters ──
-const SAMPLES = [
-  { id:'s0', from:'Nour',    to:'My old street',      emirate:'Dubai',           theme:'I Remember', message:'The smell of cardamom coffee on Friday mornings. The way the creek reflected the old dhows before everything changed around us.' },
-  { id:'s1', from:'Mariam',  to:'My old street',      emirate:'Sharjah',         theme:'I Long For',  message:'I left ten years ago and still dream about the corniche at sunset — the fountain, children chasing pigeons near the water.' },
-  { id:'s2', from:'Anonymous',to:'Home',              emirate:'Abu Dhabi',       theme:'I Love',      message:'Every Eid we walked from Khalidiyah to the corniche. The sea breeze. The sound of your stories. I still hear them.' },
-  { id:'s3', from:'خالد',   to:'السوق القديم',        emirate:'Dubai',           theme:'I Remember',  message:'رائحة الهيل والقهوة في الفجر — شيوخ يشربون الشاي قبل أن تأتي الحرارة. أنتِ لا تزالين وطناً.' },
-  { id:'s4', from:'Sara',    to:"Baba's fishing boat", emirate:'Ras Al Khaimah', theme:'I Love',      message:'You took me fishing every Thursday before school. The Gulf was calm, the world was quiet, and I felt completely safe.' },
-  { id:'s5', from:'Fatima',  to:'My classroom',       emirate:'Sharjah',         theme:'I Remember',  message:'Room 7, Al Qasimia school. The chalk smell, the ceiling fan, Mrs. Hind writing on the board. You shaped everything I am.' },
-  { id:'s6', from:'Yusuf',   to:'The creek at low tide',emirate:'Fujairah',     theme:'I Miss',      message:'Dibba before the hotels. Just the mountains, the sea, and fishermen untangling their nets. I miss that quietness so much.' },
-  { id:'s7', from:'Layla',   to:"Grandma's kitchen",  emirate:'Abu Dhabi',       theme:'I Long For',  message:'The smell of thareed on Fridays. She would start at dawn and by noon the whole building knew. I would give anything to eat there again.' },
-  { id:'s8', from:'Hassan',  to:'UAQ corniche',        emirate:'Umm Al Quwain',  theme:'I Miss',      message:'The smallest emirate with the biggest sky. I never appreciated you until I was gone. That quiet is something I chase everywhere now.' },
-  { id:'s9', from:'Omar',    to:'My first apartment',  emirate:'Ajman',          theme:'I Remember',  message:'Al Nuaimiyah, 2008. Twelve of us in a two bedroom. We were poor and did not know it. Those were the richest years.' },
-];
+let allCards=[...SAMPLES],activeTheme='',searchQuery='';
 
-let allLetters = [...SAMPLES];
-let filteredLetters = [...allLetters];
-let activeEmirate = null;
-let activeTheme = null;
-let modalIdx = 0;
-let mapExpanded = false;
-let mapCollapsed = false;
-
-// ── Load from Supabase ──
-(async () => {
-  const { data } = await _sb.from('letters').select('*').order('created_at',{ascending:false}).limit(200);
-  if (data && data.length) {
-    const dbLetters = data.map(r => ({
-      id: r.id, from: r.from||'Anonymous', to: r.to||'',
-      emirate: r.emirate||'', theme: r.theme||'',
-      message: r.message||'', sceneSrc: r.scene_src||'',
-      stampSrc: r.stamp_src||'', styleIdx: r.style_idx||0,
-      date: r.date||''
-    }));
-    const dbIds = new Set(dbLetters.map(l=>l.id));
-    const localOnly = JSON.parse(localStorage.getItem('ptoh_wall')||'[]')
-      .filter(c => !dbIds.has(c.id))
-      .map(c => ({id:c.id,from:c.from,to:c.to,emirate:c.emirate,theme:c.theme,message:c.message,sceneSrc:c.sceneSrc,stampSrc:c.stampSrc}));
-    allLetters = [...dbLetters, ...localOnly, ...SAMPLES];
-    applyFilters();
-    updateMapDots();
+(async()=>{
+  const{data}=await _sb.from('letters').select('*').order('created_at',{ascending:false}).limit(200);
+  if(data&&data.length){
+    const db=data.map(dbR);
+    const ids=new Set(db.map(c=>c.id));
+    const loc=JSON.parse(localStorage.getItem('ptoh_wall')||'[]').filter(c=>!ids.has(c.id));
+    allCards=[...db,...loc,...SAMPLES];
+    applyFilters();updateCounts();
   }
-  // Real-time
-  _sb.channel('explore-feed')
-    .on('postgres_changes',{event:'INSERT',schema:'public',table:'letters'}, payload => {
-      const r = payload.new;
-      allLetters = [{id:r.id,from:r.from,to:r.to,emirate:r.emirate,theme:r.theme,
-        message:r.message,sceneSrc:r.scene_src,stampSrc:r.stamp_src}, ...allLetters];
-      applyFilters(); updateMapDots();
-    }).subscribe();
+  _sb.channel('ex-feed').on('postgres_changes',{event:'INSERT',schema:'public',table:'letters'},p=>{
+    allCards=[dbR(p.new),...allCards];applyFilters();updateCounts();
+  }).subscribe();
 })();
 
-// ── MAP ──
-const map = L.map('map', { center:[24.5,54.8], zoom:7, minZoom:5, maxZoom:13, scrollWheelZoom:true, zoomControl:true });
-L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}',
-  { attribution:'© Esri · National Geographic', maxZoom:16 }).addTo(map);
+// MAP
+const map=L.map('map',{center:[24.5,54.8],zoom:7,minZoom:5,maxZoom:13,scrollWheelZoom:true});
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}',{attribution:'© Esri · National Geographic',maxZoom:16}).addTo(map);
 
-// ── Kiosk touch fix: transform map drag for -90deg CSS rotation ──
-if (_isKiosk) {
+if(_isKiosk){
   map.dragging.disable();
-  let _dragging = false, _lastX = 0, _lastY = 0;
-  const mc = map.getContainer();
-  mc.addEventListener('touchstart', e => {
-    _dragging = true;
-    _lastX = e.touches[0].clientX;
-    _lastY = e.touches[0].clientY;
-    e.preventDefault();
-  }, { passive:false });
-  mc.addEventListener('touchmove', e => {
-    if (!_dragging) return;
-    const dx = e.touches[0].clientX - _lastX;
-    const dy = e.touches[0].clientY - _lastY;
-    _lastX = e.touches[0].clientX;
-    _lastY = e.touches[0].clientY;
-    // rotate delta +90deg to counteract -90deg page rotation
-    map.panBy([-dy, dx], { animate:false });
-    e.preventDefault();
-  }, { passive:false });
-  mc.addEventListener('touchend', () => { _dragging = false; });
-
-  // pinch zoom
-  let _pinchDist = 0;
-  mc.addEventListener('touchstart', e => {
-    if (e.touches.length === 2) {
-      _pinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-    }
-  }, { passive:true });
-  mc.addEventListener('touchmove', e => {
-    if (e.touches.length === 2 && _pinchDist > 0) {
-      const newDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-      if (Math.abs(newDist - _pinchDist) > 5) {
-        newDist > _pinchDist ? map.zoomIn(0.3) : map.zoomOut(0.3);
-        _pinchDist = newDist;
-      }
-    }
-  }, { passive:true });
+  let _d=false,_lx=0,_ly=0,_pd=0;
+  const mc=map.getContainer();
+  mc.addEventListener('touchstart',e=>{if(e.touches.length===1){_d=true;_lx=e.touches[0].clientX;_ly=e.touches[0].clientY;}if(e.touches.length===2){_pd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);}e.preventDefault();},{passive:false});
+  mc.addEventListener('touchmove',e=>{if(e.touches.length===1&&_d){const dx=e.touches[0].clientX-_lx,dy=e.touches[0].clientY-_ly;_lx=e.touches[0].clientX;_ly=e.touches[0].clientY;map.panBy([-dy,dx],{animate:false});}if(e.touches.length===2&&_pd>0){const nd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(Math.abs(nd-_pd)>5){nd>_pd?map.zoomIn(0.3):map.zoomOut(0.3);_pd=nd;}}e.preventDefault();},{passive:false});
+  mc.addEventListener('touchend',()=>{_d=false;});
 }
 
-// ── Emirate markers ──
-const dotMarkers = {};
-EMIRATE_DATA.forEach(em => {
-  const color = EMIRATE_COLOR[em.id];
-  const icon = L.divIcon({ className:'',
-    html:`<div class="em-label" style="color:${color};">${em.id}<span class="em-ar">${em.ar}</span><span class="em-cnt" id="ec-${em.id.replace(/\s/g,'_')}"></span></div>`,
-    iconAnchor:[55,22] });
-  L.marker([em.lat, em.lng], { icon, zIndexOffset:100 }).addTo(map)
-    .on('click', e => { L.DomEvent.stopPropagation(e); selectEmirateFromMap(em.id); });
+function updateCounts(){
+  ED.forEach(em=>{
+    const n=allCards.filter(c=>c.emirate===em.id).length;
+    const el=document.getElementById('ec_'+em.id.replace(/\s/g,'_'));
+    if(el)el.textContent=n+(n===1?' letter':' letters');
+  });
+}
+ED.forEach(em=>{
+  const color=EC[em.id];
+  const icon=L.divIcon({className:'',html:`<div class="em-label" style="color:${color};">${em.id}<span class="em-ar">${em.ar}</span><span class="em-cnt" id="ec_${em.id.replace(/\s/g,'_')}"></span></div>`,iconAnchor:[55,20]});
+  L.marker([em.lat,em.lng],{icon,zIndexOffset:100}).addTo(map).on('click',e=>{L.DomEvent.stopPropagation(e);filterByEmirate(em.id);});
 });
+[{name:'Arabian Gulf',lat:26.6,lng:52.2,cls:'sea-label',sz:'0.75rem'},{name:'Gulf of Oman',lat:23.5,lng:58.8,cls:'sea-label',sz:'0.68rem'},{name:'SAUDI ARABIA',lat:23.6,lng:44.5,cls:'geo-label',sz:'0.85rem'},{name:'OMAN',lat:21.5,lng:57.5,cls:'geo-label',sz:'0.75rem'},{name:'IRAN',lat:32.0,lng:53.7,cls:'geo-label',sz:'0.78rem'}].forEach(l=>{
+  const icon=L.divIcon({className:'',html:`<div class="${l.cls}" style="font-size:${l.sz}">${l.name}</div>`,iconAnchor:[0,8]});
+  L.marker([l.lat,l.lng],{icon,interactive:false}).addTo(map);
+});
+updateCounts();
 
-function updateMapDots() {
-  EMIRATE_DATA.forEach(em => {
-    const count = allLetters.filter(l => l.emirate === em.id).length;
-    const el = document.getElementById('ec-' + em.id.replace(/\s/g,'_'));
-    if (el) el.textContent = count + ' letter' + (count!==1?'s':'');
-  });
+function filterByEmirate(id){
+  document.getElementById('f-location').value=id;
+  onLocationChange();
+  const em=ED.find(e=>e.id===id);
+  document.getElementById('emirate-bar-name').textContent=id+' · '+(em?.ar||'');
+  document.getElementById('emirate-bar').classList.add('show');
+  if(em)map.flyTo([em.lat,em.lng],9,{duration:0.8});
 }
-updateMapDots();
-
-// ── Filter state ──
-function selectEmirateFromMap(emirateId) {
-  activeEmirate = emirateId;
-  // update tab buttons
-  document.querySelectorAll('.em-tab').forEach(b => {
-    const matches = b.textContent.startsWith(emirateId.split(' ')[0]);
-    b.classList.toggle('active', matches);
-    if (matches) { b.style.background = EMIRATE_COLOR[emirateId]; b.style.color='#fff'; b.style.borderColor='transparent'; }
-    else { b.style.background=''; b.style.color=''; b.style.borderColor=''; }
-  });
-  // show chip
-  const chip = document.getElementById('selected-chip');
-  document.getElementById('selected-chip-name').textContent = emirateId;
-  chip.classList.add('show');
-  applyFilters();
-  // scroll down to letters
-  setTimeout(() => { document.getElementById('letters-section').scrollTo({top:0,behavior:'smooth'}); }, 100);
-  collapseMap();
+function clearEmirateFilter(){
+  document.getElementById('f-location').value='';
+  onLocationChange();
+  document.getElementById('emirate-bar').classList.remove('show');
+  map.flyTo([24.5,54.8],7,{duration:0.8});
 }
-
-function selectEmirate(emirateId, btn) {
-  activeEmirate = emirateId;
-  document.querySelectorAll('.em-tab').forEach(b => {
-    b.classList.remove('active');
-    b.style.background=''; b.style.color=''; b.style.borderColor='';
-  });
-  btn.classList.add('active');
-  if (emirateId) {
-    btn.style.background = EMIRATE_COLOR[emirateId]||'rgba(58,34,8,0.7)';
-    btn.style.color = '#fff'; btn.style.borderColor = 'transparent';
-    const chip = document.getElementById('selected-chip');
-    document.getElementById('selected-chip-name').textContent = emirateId;
-    chip.classList.add('show');
-    // fly map to emirate
-    const em = EMIRATE_DATA.find(e=>e.id===emirateId);
-    if (em) map.flyTo([em.lat, em.lng], 9, {duration:0.8});
-  } else {
-    btn.style.background='rgba(58,34,8,0.7)'; btn.style.color='#fff'; btn.style.borderColor='transparent';
-    document.getElementById('selected-chip').classList.remove('show');
-    map.flyTo([24.5,54.8], 7, {duration:0.8});
-  }
+function onLocationChange(){
+  const v=document.getElementById('f-location').value;
+  const nb=document.getElementById('f-neighborhood');
+  if(v&&v!=='INTL'&&NBS[v]){nb.innerHTML='<option value="">All · الكل</option>'+NBS[v].map(n=>`<option>${n}</option>`).join('');nb.disabled=false;}
+  else{nb.innerHTML='<option value="">All · الكل</option>';nb.disabled=true;}
   applyFilters();
 }
-
-function clearEmirate() {
-  activeEmirate = null;
-  document.querySelectorAll('.em-tab').forEach((b,i) => {
-    b.classList.remove('active'); b.style.background=''; b.style.color=''; b.style.borderColor='';
-    if (i===0) { b.classList.add('active'); b.style.background='rgba(58,34,8,0.7)'; b.style.color='#fff'; b.style.borderColor='transparent'; }
+function onSearch(v){searchQuery=v.trim().toLowerCase();document.getElementById('search-clear-btn').classList.toggle('show',!!searchQuery);applyFilters();}
+function clearSearch(){document.getElementById('search-input').value='';searchQuery='';document.getElementById('search-clear-btn').classList.remove('show');applyFilters();}
+document.querySelectorAll('.theme-chip').forEach(chip=>{
+  chip.addEventListener('click',()=>{
+    const t=chip.dataset.theme;
+    activeTheme=activeTheme===t?'':t;
+    document.querySelectorAll('.theme-chip').forEach(c=>c.classList.remove('active'));
+    document.querySelector(`.theme-chip[data-theme="${activeTheme}"]`)?.classList.add('active');
+    if(activeTheme==='')document.querySelector('.theme-chip[data-theme=""]').classList.add('active');
+    applyFilters();
   });
-  document.getElementById('selected-chip').classList.remove('show');
-  map.flyTo([24.5,54.8], 7, {duration:0.8});
-  applyFilters();
-}
-
-function selectTheme(theme, btn) {
-  if (activeTheme === theme) {
-    activeTheme = null;
-    btn.classList.remove('active');
-  } else {
-    activeTheme = theme;
-    document.querySelectorAll('.th-tab').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-  }
-  applyFilters();
-}
-
-function applyFilters() {
-  filteredLetters = allLetters.filter(l => {
-    if (activeEmirate && l.emirate !== activeEmirate) return false;
-    if (activeTheme && l.theme !== activeTheme) return false;
+});
+function applyFilters(){
+  const loc=document.getElementById('f-location').value;
+  const nb=document.getElementById('f-neighborhood').value;
+  const f=allCards.filter(c=>{
+    if(loc==='INTL'){if(c.emirate&&c.emirate!=='')return false;}
+    else if(loc&&c.emirate!==loc)return false;
+    if(nb&&c.neighborhood!==nb)return false;
+    if(activeTheme&&c.theme!==activeTheme)return false;
+    if(searchQuery){const h=[c.message,c.from,c.to,c.location,c.theme].join(' ').toLowerCase();if(!h.includes(searchQuery))return false;}
     return true;
   });
-  renderLetters();
+  document.getElementById('result-count').textContent=f.length+(f.length===1?' letter · رسالة':' letters · رسائل');
+  renderGrid(f);
+}
+function renderGrid(cards){
+  const g=document.getElementById('letters-grid');
+  if(!cards.length){g.innerHTML='<div class="empty-state">No letters here yet · لا رسائل هنا بعد</div>';return;}
+  g.innerHTML=cards.map(c=>buildCard(c,allCards.indexOf(c))).join('');
+}
+function buildCard(c,idx){
+  const s=c.styleIdx||0,fc=FC[s]||'f-airmail',bg=PC[s]||'#FAF3E2';
+  const ar=/[؀-ۿ]/.test(c.message||''),hp=!!c.sceneSrc,hs=!!c.stampSrc;
+  return`<div class="card-scene-wrap"><div class="card-scene" onclick="openCard(${idx})"><div class="card-inner">
+    <div class="card-face card-front-face"><div class="frame-wrap ${fc}" style="height:100%;"><div class="card-front-inner" style="background:${bg};">
+      ${hp?`<img class="pc-ghost" src="${c.sceneSrc}">`:''}<div class="card-message-col">
+        <div class="card-top-row"><span class="card-top-label">Post Card · بطاقة بريدية</span>${c.theme?`<span class="card-theme-pill">${c.theme}</span>`:''}</div>
+        <p class="card-msg-text" dir="${ar?'rtl':'auto'}">${c.message||'…'}</p></div>
+      <div class="card-right-col"><div class="card-stamp-wrap">
+        ${hs?`<div class="card-stamp"><img src="${c.stampSrc}"></div>`:`<div class="card-stamp-empty"><span>Stamp<br>طابع</span></div>`}
+        <img class="card-postmark" src="emirates-post.png" alt=""></div>
+        <div class="card-divider"></div>
+        <div><span class="card-addr-lbl">To · إلى</span><span class="card-addr-name">${c.to||'—'}</span>${c.location?`<span class="card-addr-loc">${c.location}</span>`:''}</div>
+        <div class="card-from-block"><span class="card-addr-lbl">From · من</span><span class="card-addr-name" style="font-size:0.68rem;">${c.from||'Anonymous'}</span>${c.date?`<span class="card-date">${c.date}</span>`:''}</div>
+      </div></div></div>
+      <div class="card-flip-hint">hover for photo</div>
+      ${hp?`<button class="card-photo-btn" onclick="event.stopPropagation();const s=this.closest('.card-scene');s.classList.toggle('photo-peek');this.textContent=s.classList.contains('photo-peek')?'✕ Letter':'Photo · صورة';">Photo · صورة</button>`:''}
+    </div>
+    <div class="card-face card-back-face"><div class="card-back-inner">
+      ${hp?`<img class="back-photo" src="${c.sceneSrc}">`:''}<div class="card-back-grad"></div>
+      ${!hp?`<div class="card-back-no-photo"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>No photo</span></div>`:''}
+      <div class="card-back-content"><span class="card-back-to">${c.to||'—'}</span><span class="card-back-loc">${c.location||''}</span></div>
+      <button class="card-open-btn" onclick="event.stopPropagation();openCard(${idx})">Read full · اقرأ ↗</button>
+    </div></div>
+  </div></div></div>`;
 }
 
-function renderLetters() {
-  const grid = document.getElementById('letters-grid');
-  const none = document.getElementById('no-letters');
-  const label = document.getElementById('result-label');
-  label.textContent = filteredLetters.length + ' letter' + (filteredLetters.length!==1?'s · رسائل':' · رسالة');
-  if (!filteredLetters.length) { grid.innerHTML=''; none.style.display='block'; return; }
-  none.style.display='none';
-  const THEME_COLOR = {'I Miss':'#7A4A20','I Love':'#B5372A','I Long For':'#2E5FA3','I Remember':'#4A8047'};
-  grid.innerHTML = filteredLetters.map((l,i) => {
-    const isAr = /[؀-ۿ]/.test(l.message||'');
-    const tc = THEME_COLOR[l.theme] || 'rgba(58,34,8,0.4)';
-    const ec = EMIRATE_COLOR[l.emirate] || 'rgba(58,34,8,0.4)';
-    const msg = (l.message||'').slice(0,140) + ((l.message||'').length>140?'…':'');
-    return `<div class="ltr-card" style="border-left-color:${ec};" onclick="openLtrModal(${i})">
-      <div class="ltr-card-top">
-        <div class="ltr-card-to">To: ${l.to||'—'}</div>
-        ${l.theme ? `<div class="ltr-card-theme" style="color:${tc};border-color:${tc};">${l.theme}</div>` : ''}
-      </div>
-      <div class="ltr-card-msg ${isAr?'ar':''}">${msg}</div>
-      <div class="ltr-card-footer">
-        <div>
-          <div class="ltr-card-from">${l.from||'Anonymous'}</div>
-          ${l.emirate ? `<div class="ltr-card-loc">${l.emirate}</div>` : ''}
+let _cur=null,_sp=false;
+function openCard(idx){
+  const c=allCards[idx];if(!c)return;
+  _cur=c;_sp=false;
+  const s=c.styleIdx||0,bg=PC[s]||'#FAF3E2',ar=/[؀-ۿ]/.test(c.message||'');
+  document.getElementById('pc-modal-content').innerHTML=`<div style="${FS[s]||FS[0]} border-radius:3px;box-shadow:0 4px 24px rgba(62,32,10,0.13),0 18px 60px rgba(62,32,10,0.09);">
+    <div style="display:flex;aspect-ratio:3/2;overflow:hidden;background:${bg};position:relative;">
+      ${c.sceneSrc?`<img src="${c.sceneSrc}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.06;z-index:0;">`:''}
+      <div style="flex:1;display:flex;flex-direction:column;position:relative;z-index:1;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:0.7rem 0.9rem 0.55rem 1rem;border-bottom:1px solid rgba(107,63,30,0.1);gap:0.5rem;">
+          <div>
+            <div style="font-size:0.52rem;font-weight:700;letter-spacing:0.28em;text-transform:uppercase;color:rgba(92,52,24,0.38);font-family:var(--font-ui);">Post Card · بطاقة بريدية</div>
+            <div style="font-size:0.46rem;letter-spacing:0.18em;text-transform:uppercase;color:rgba(36,61,110,0.5);font-family:var(--font-ui);">Air Mail · بريد جوي</div>
+            ${c.theme?`<span style="display:inline-flex;margin-top:0.15rem;font-size:0.5rem;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:#4A6741;background:rgba(74,103,65,0.09);border:1px solid rgba(74,103,65,0.22);padding:0.12rem 0.4rem;border-radius:2px;">${c.theme}</span>`:''}
+          </div>
+          <div style="width:70px;height:86px;overflow:hidden;background:#EDE0C4;box-shadow:2px 3px 8px rgba(50,22,8,0.2);flex-shrink:0;">
+            ${c.stampSrc?`<img src="${c.stampSrc}" style="width:100%;height:100%;object-fit:cover;">`:`<div style="height:100%;display:flex;align-items:center;justify-content:center;font-size:0.4rem;text-transform:uppercase;color:rgba(107,63,30,0.4);text-align:center;">Stamp<br>طابع</div>`}
+          </div>
         </div>
-        ${l.sceneSrc ? `<img class="ltr-card-photo" src="${l.sceneSrc}" alt="">` : ''}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-// ── Modal ──
-function openLtrModal(idx) {
-  modalIdx = idx;
-  renderModal();
-  document.getElementById('ltr-modal').classList.add('open');
-}
-function closeLtrModal() { document.getElementById('ltr-modal').classList.remove('open'); }
-function modalNav(dir) {
-  modalIdx = Math.max(0, Math.min(filteredLetters.length-1, modalIdx+dir));
-  renderModal();
-}
-function renderModal() {
-  const l = filteredLetters[modalIdx];
-  if (!l) return;
-  const isAr = /[؀-ۿ]/.test(l.message||'');
-  const ec = EMIRATE_COLOR[l.emirate]||'#8B5E3C';
-  const THEME_COLOR = {'I Miss':'#7A4A20','I Love':'#B5372A','I Long For':'#2E5FA3','I Remember':'#4A8047'};
-  const tc = THEME_COLOR[l.theme]||'#8B5E3C';
-  document.getElementById('ltr-modal-box').innerHTML = `
-    ${l.sceneSrc ? `<div style="aspect-ratio:3/2;background:linear-gradient(155deg,#7A4825,#C4956A);position:relative;border-radius:4px 4px 0 0;overflow:hidden;">
-      <img src="${l.sceneSrc}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;">
-      <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.4),transparent);"></div>
-    </div>` : ''}
-    <div style="padding:1.4rem 1.5rem;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.8rem;">
-        <div style="font-size:0.48rem;letter-spacing:0.12em;text-transform:uppercase;color:rgba(58,34,8,0.4);">POST CARD · بطاقة بريدية</div>
-        ${l.theme ? `<div style="font-size:0.44rem;color:${tc};border:1px solid ${tc};padding:0.1rem 0.4rem;border-radius:1px;">${l.theme}</div>` : ''}
-      </div>
-      <div style="font-family:'IM Fell English',Georgia,serif;font-style:italic;font-size:1.05rem;line-height:1.75;color:#3A2208;margin-bottom:1.2rem;${isAr?'direction:rtl;text-align:right;font-family:Massira,serif;':''}">${l.message||''}</div>
-      <div style="border-top:1px solid rgba(92,52,24,0.1);padding-top:0.8rem;display:flex;justify-content:space-between;align-items:flex-end;">
-        <div>
-          <div style="font-size:0.44rem;letter-spacing:0.1em;text-transform:uppercase;color:rgba(58,34,8,0.35);margin-bottom:0.2rem;">To · إلى</div>
-          <div style="font-size:0.75rem;color:#3A2208;">${l.to||'—'}</div>
-          <div style="font-size:0.44rem;letter-spacing:0.1em;text-transform:uppercase;color:rgba(58,34,8,0.35);margin-top:0.5rem;margin-bottom:0.2rem;">From · من</div>
-          <div style="font-size:0.75rem;color:#3A2208;">${l.from||'Anonymous'}</div>
-          ${l.emirate ? `<div style="font-size:0.55rem;color:${ec};margin-top:0.3rem;">${l.emirate}</div>` : ''}
+        <div style="flex:1;display:flex;min-height:0;">
+          <div style="flex:1;padding:0.75rem 0.85rem 0.6rem 1rem;border-right:1px solid rgba(107,63,30,0.08);background-image:repeating-linear-gradient(transparent,transparent calc(2rem - 1px),rgba(107,63,30,0.08) calc(2rem - 1px),rgba(107,63,30,0.08) 2rem);">
+            <p style="font-family:${ar?'var(--font-ar)':'var(--font-en)'};font-size:1.05rem;color:#1A110A;line-height:2rem;white-space:pre-wrap;word-break:break-word;" dir="${ar?'rtl':'auto'}">${c.message||''}</p>
+          </div>
+          <div style="width:155px;padding:0.65rem 0.9rem 0.6rem 0.75rem;display:flex;flex-direction:column;gap:0.5rem;">
+            <div>
+              <span style="font-size:0.46rem;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:rgba(92,52,24,0.55);display:block;margin-bottom:0.15rem;font-family:var(--font-ui);">To · إلى</span>
+              <span style="font-family:var(--font-en);font-size:1rem;color:#1A110A;border-bottom:1px solid rgba(107,63,30,0.18);display:block;padding-bottom:0.1rem;">${c.to||'—'}</span>
+              ${c.location?`<span style="font-family:var(--font-ui);font-size:0.7rem;color:#6B3F1E;opacity:0.65;display:block;margin-top:0.1rem;">${c.location}</span>`:''}
+            </div>
+            <hr style="border:none;border-top:1px dashed rgba(107,63,30,0.14);">
+            <div>
+              <span style="font-size:0.46rem;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:rgba(92,52,24,0.55);display:block;margin-bottom:0.15rem;font-family:var(--font-ui);">From · من</span>
+              <span style="font-family:var(--font-en);font-size:1rem;color:#1A110A;border-bottom:1px solid rgba(107,63,30,0.18);display:block;padding-bottom:0.1rem;">${c.from||'Anonymous'}</span>
+            </div>
+            ${c.date?`<span style="font-size:0.44rem;color:#6B3F1E;opacity:0.38;margin-top:auto;font-family:var(--font-ui);">${c.date}</span>`:''}
+          </div>
         </div>
-        ${l.stampSrc ? `<img src="${l.stampSrc}" style="width:52px;height:52px;object-fit:contain;">` : ''}
       </div>
     </div>
-  `;
-  document.getElementById('modal-prev').disabled = modalIdx === 0;
-  document.getElementById('modal-next').disabled = modalIdx === filteredLetters.length-1;
+  </div>`;
+  document.getElementById('pc-modal-writing').style.display='';
+  document.getElementById('pc-modal-photo').style.display='none';
+  document.getElementById('modal-flip-btn').innerHTML=`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg> Flip to Photo · اقلب للصورة`;
+  document.getElementById('pc-modal').classList.add('open');
+  document.getElementById('pc-modal-close-btn').style.display='flex';
 }
-
-// ── Map expand/collapse ──
-function toggleMap() {
-  if (mapExpanded) {
-    // back to normal
-    mapExpanded = false; mapCollapsed = false;
-    document.getElementById('map-section').classList.remove('expanded','collapsed');
-    document.getElementById('map-toggle-label').textContent = 'Hide Map · إخفاء الخريطة';
-    document.getElementById('map-toggle').querySelector('svg polyline').setAttribute('points','6 9 12 15 18 9');
-  } else if (mapCollapsed) {
-    // expand from collapsed
-    mapCollapsed = false; mapExpanded = true;
-    document.getElementById('map-section').classList.remove('collapsed');
-    document.getElementById('map-section').classList.add('expanded');
-    document.getElementById('map-toggle-label').textContent = 'Show Letters · أظهر الرسائل';
-    document.getElementById('map-toggle').querySelector('svg polyline').setAttribute('points','18 15 12 9 6 15');
-  } else {
-    // collapse
-    mapCollapsed = true;
-    document.getElementById('map-section').classList.add('collapsed');
-    document.getElementById('map-toggle-label').textContent = 'Show Map · أظهر الخريطة';
-    document.getElementById('map-toggle').querySelector('svg polyline').setAttribute('points','6 15 12 9 18 15');
-  }
-  setTimeout(() => map.invalidateSize(), 350);
-}
-function collapseMap() {
-  if (!mapCollapsed) {
-    mapCollapsed = true; mapExpanded = false;
-    document.getElementById('map-section').classList.add('collapsed');
-    document.getElementById('map-section').classList.remove('expanded');
-    document.getElementById('map-toggle-label').textContent = 'Show Map · أظهر الخريطة';
-    document.getElementById('map-toggle').querySelector('svg polyline').setAttribute('points','6 15 12 9 18 15');
-    setTimeout(() => map.invalidateSize(), 350);
+function toggleModalFlip(){
+  const c=_cur;if(!c)return;_sp=!_sp;
+  const wr=document.getElementById('pc-modal-writing'),ph=document.getElementById('pc-modal-photo'),btn=document.getElementById('modal-flip-btn');
+  if(_sp){
+    wr.style.display='none';ph.style.display='';
+    if(c.sceneSrc){document.getElementById('pc-modal-photo-img').src=c.sceneSrc;document.getElementById('pc-modal-photo-img').style.display='';document.getElementById('pc-modal-no-photo').style.display='none';}
+    else{document.getElementById('pc-modal-photo-img').style.display='none';document.getElementById('pc-modal-no-photo').style.display='flex';}
+    document.getElementById('pc-modal-photo-to').textContent=c.to||'—';
+    document.getElementById('pc-modal-photo-loc').textContent=c.location||'';
+    btn.innerHTML=`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg> Flip to Writing · اقلب للكتابة`;
+  }else{
+    wr.style.display='';ph.style.display='none';
+    btn.innerHTML=`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg> Flip to Photo · اقلب للصورة`;
   }
 }
-
-// Initial render
+function closeModalBtn(){document.getElementById('pc-modal').classList.remove('open');document.getElementById('pc-modal-close-btn').style.display='none';}
+document.addEventListener('keydown',e=>{if(!document.getElementById('pc-modal').classList.contains('open'))return;if(e.key==='Escape')closeModalBtn();if(e.key==='f'||e.key==='F')toggleModalFlip();});
 applyFilters();
 </script>
 </body>
