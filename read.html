@@ -618,7 +618,7 @@ const _sb = supabase.createClient(
 
 function dbRowToCard(r) {
   return {
-    id: r.id,
+    id: Number(r.id),
     to: r.to || '',
     from: r.from || '',
     message: r.message || '',
@@ -665,8 +665,8 @@ loadFromSupabase().then(dbCards => {
     allCards = [...dbCards, ...localOnly, ...SAMPLES];
     applyFilters();
     if (paramId) {
-      const idx = allCards.findIndex(c => c.id === paramId);
-      if (idx !== -1) setTimeout(() => openCard(idx), 300);
+      const idx = allCards.findIndex(c => String(c.id) === String(paramId));
+      if (idx !== -1) setTimeout(() => openCard(idx), 400);
     }
   }
 });

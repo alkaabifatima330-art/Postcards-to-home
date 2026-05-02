@@ -1722,7 +1722,7 @@ function shakeEl(id) {
   setTimeout(() => el.classList.remove('field-shake'), 400);
 }
 
-function publish() {
+async function publish() {
   const msg      = document.getElementById('f-msg').value.trim();
   const to       = document.getElementById('f-to').value.trim();
   const toRegion = document.getElementById('to-region').value;
@@ -1803,7 +1803,7 @@ function publish() {
   const wall = loadWall();
   wall.unshift(cardData);
   saveWall(wall.slice(0, 30));
-  saveToSupabase(cardData); // save to real database
+  await saveToSupabase(cardData); // wait for DB save before showing QR
 
   document.getElementById('success-card-wrap').innerHTML = cardHTML(cardData, s.frame);
 
