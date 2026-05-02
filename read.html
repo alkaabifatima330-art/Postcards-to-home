@@ -170,6 +170,11 @@
       opacity:0.45; letter-spacing:0.08em;
     }
 
+    /* ── SCROLLBAR ── */
+    #scroll-track{position:fixed;right:6px;top:5%;bottom:5%;width:5px;background:rgba(58,34,8,0.1);border-radius:3px;z-index:300;cursor:pointer;}
+    #scroll-thumb{position:absolute;left:0;width:100%;background:rgba(58,34,8,0.35);border-radius:3px;min-height:48px;transition:background 0.15s;cursor:grab;}
+    #scroll-thumb:active{cursor:grabbing;background:rgba(58,34,8,0.6);}
+
     /* ── FLIP CARD GRID ── */
     .letters-grid {
       display:grid;
@@ -976,6 +981,49 @@ if (paramEmirate) {
 }
 
 
+</script>
+
+<!-- Scroll bar -->
+<div id="scroll-track"><div id="scroll-thumb"></div></div>
+
+<script>
+const _track = document.getElementById('scroll-track');
+const _thumb = document.getElementById('scroll-thumb');
+
+function _updateThumb() {
+  const sh = document.documentElement.scrollHeight - window.innerHeight;
+  if (sh <= 0) { _track.style.display = 'none'; return; }
+  _track.style.display = 'block';
+  const th = Math.max(48, (window.innerHeight / document.documentElement.scrollHeight) * _track.offsetHeight);
+  const top = (window.scrollY / sh) * (_track.offsetHeight - th);
+  _thumb.style.height = th + 'px';
+  _thumb.style.top = top + 'px';
+}
+window.addEventListener('scroll', _updateThumb);
+window.addEventListener('resize', _updateThumb);
+setTimeout(_updateThumb, 400);
+
+let _drag = false, _dy0 = 0, _sy0 = 0;
+function _startDrag(y) { _drag = true; _dy0 = y; _sy0 = window.scrollY; }
+function _moveDrag(y) {
+  if (!_drag) return;
+  const sh = document.documentElement.scrollHeight - window.innerHeight;
+  const ratio = sh / (_track.offsetHeight - _thumb.offsetHeight);
+  window.scrollTo(0, _sy0 + (y - _dy0) * ratio);
+}
+_thumb.addEventListener('mousedown', e => { _startDrag(e.clientY); e.preventDefault(); });
+_thumb.addEventListener('touchstart', e => { _startDrag(e.touches[0].clientY); e.preventDefault(); }, {passive:false});
+document.addEventListener('mousemove', e => _moveDrag(e.clientY));
+document.addEventListener('touchmove', e => { if(_drag) { _moveDrag(e.touches[0].clientY); e.preventDefault(); } }, {passive:false});
+document.addEventListener('mouseup', () => _drag = false);
+document.addEventListener('touchend', () => _drag = false);
+
+_track.addEventListener('click', e => {
+  if (e.target === _thumb) return;
+  const r = _track.getBoundingClientRect();
+  const sh = document.documentElement.scrollHeight - window.innerHeight;
+  window.scrollTo({top: ((e.clientY - r.top) / _track.offsetHeight) * sh, behavior:'smooth'});
+});
 </script>
 </body>
 </html>
