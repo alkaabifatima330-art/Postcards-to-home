@@ -6,6 +6,11 @@
   <script>
     if (new URLSearchParams(location.search).get('kiosk') === '1') {
       document.documentElement.classList.add('kiosk-mode');
+      document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('a').forEach(a => {
+          try { const u = new URL(a.href); u.searchParams.set('kiosk','1'); a.href = u.toString(); } catch(e){}
+        });
+      });
       const s = document.createElement('style');
       s.textContent = `
         html.kiosk-mode {
