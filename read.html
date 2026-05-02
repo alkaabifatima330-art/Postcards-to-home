@@ -56,7 +56,7 @@
       --font-writing-ar:'Massira','Kalam',cursive;
     }
     * { box-sizing:border-box; margin:0; padding:0; }
-    body { font-family:var(--font-ui); background:var(--parchment); color:var(--deep-brown); min-height:100vh; }
+    body { font-family:var(--font-ui); background:var(--parchment); color:var(--deep-brown); }
     body::before {
       content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
       background:
@@ -171,13 +171,13 @@
       opacity:0.45; letter-spacing:0.08em;
     }
 
-    /* ── SCROLLBAR ── */
+    /* ── SCROLL ARROWS ── */
     html { overflow-x: hidden; overflow-y: auto; }
-    body { overflow: visible; }
-    #sb-track { position:fixed; right:0; top:0; bottom:0; width:44px; z-index:9999; touch-action:none; cursor:pointer; }
-    #sb-rail { position:absolute; right:6px; top:0; bottom:0; width:6px; background:rgba(58,34,8,0.12); border-radius:3px; }
-    #sb-thumb { position:absolute; right:6px; width:6px; background:rgba(58,34,8,0.5); border-radius:3px; min-height:50px; touch-action:none; }
-    #sb-thumb.active { background:rgba(58,34,8,0.8); }
+    body { overflow: visible; min-height: 100vh; }
+    .scroll-btn { position:fixed; right:12px; width:48px; height:48px; border-radius:50%; background:rgba(58,34,8,0.75); border:none; color:#EDE1C8; font-size:1.3rem; cursor:pointer; z-index:9999; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 10px rgba(0,0,0,0.25); touch-action:manipulation; user-select:none; -webkit-user-select:none; }
+    .scroll-btn:active { background:rgba(58,34,8,1); transform:scale(0.93); }
+    #btn-up   { bottom:72px; }
+    #btn-down { bottom:16px; }
 
     /* ── FLIP CARD GRID ── */
     .letters-grid {
@@ -985,60 +985,32 @@ if (paramEmirate) {
 
 </script>
 
-<div id="sb-track"><div id="sb-rail"></div><div id="sb-thumb"></div></div>
+<button class="scroll-btn" id="btn-up">&#8679;</button>
+<button class="scroll-btn" id="btn-down">&#8681;</button>
 
 <script>
 (function(){
-  const track = document.getElementById('sb-track');
-  const thumb = document.getElementById('sb-thumb');
-  const D = document.documentElement;
+  const STEP = 320;
+  let _iv = null;
 
-  function update() {
-    const sh = D.scrollHeight - window.innerHeight;
-    if (sh <= 0) return;
-    const thumbH = Math.max(50, (window.innerHeight / D.scrollHeight) * window.innerHeight);
-    const top = (window.scrollY / sh) * (window.innerHeight - thumbH);
-    thumb.style.height = thumbH + 'px';
-    thumb.style.top = top + 'px';
-  }
+  function scrollBy(dir) { window.scrollBy({top: dir * STEP, behavior:'smooth'}); }
 
-  window.addEventListener('scroll', update);
-  window.addEventListener('resize', update);
-  new MutationObserver(update).observe(document.getElementById('letters-grid'), {childList:true, subtree:true});
-  setTimeout(update, 600);
+  function hold(dir) { scrollBy(dir); _iv = setInterval(() => window.scrollBy({top: dir * 80}), 120); }
+  function release() { clearInterval(_iv); _iv = null; }
 
-  let dragging = false, startY = 0, startScroll = 0;
+  const up   = document.getElementById('btn-up');
+  const down = document.getElementById('btn-down');
 
-  function onStart(y) {
-    dragging = true; startY = y; startScroll = window.scrollY;
-    thumb.classList.add('active');
-    document.body.style.userSelect = 'none';
-    document.body.style.webkitUserSelect = 'none';
-  }
-  function onMove(y) {
-    if (!dragging) return;
-    const sh = D.scrollHeight - window.innerHeight;
-    const ratio = sh / (window.innerHeight - thumb.offsetHeight);
-    window.scrollTo(0, startScroll + (y - startY) * ratio);
-  }
-  function onEnd() {
-    dragging = false; thumb.classList.remove('active');
-    document.body.style.userSelect = '';
-    document.body.style.webkitUserSelect = '';
-  }
+  up.addEventListener('click', () => scrollBy(-1));
+  down.addEventListener('click', () => scrollBy(1));
 
-  thumb.addEventListener('mousedown',  e => { onStart(e.clientY); e.preventDefault(); });
-  thumb.addEventListener('touchstart', e => { onStart(e.touches[0].clientY); e.preventDefault(); }, {passive:false});
-  document.addEventListener('mousemove', e => onMove(e.clientY));
-  document.addEventListener('touchmove', e => { if(dragging){ onMove(e.touches[0].clientY); e.preventDefault(); } }, {passive:false});
-  document.addEventListener('mouseup',  onEnd);
-  document.addEventListener('touchend', onEnd);
-
-  track.addEventListener('click', e => {
-    if (e.target === thumb) return;
-    const sh = D.scrollHeight - window.innerHeight;
-    window.scrollTo({top: (e.clientY / window.innerHeight) * sh, behavior:'smooth'});
-  });
+  up.addEventListener('touchstart',   e => { e.preventDefault(); hold(-1); }, {passive:false});
+  down.addEventListener('touchstart', e => { e.preventDefault(); hold(1);  }, {passive:false});
+  up.addEventListener('touchend',   release);
+  down.addEventListener('touchend', release);
+  up.addEventListener('mousedown',   () => hold(-1));
+  down.addEventListener('mousedown', () => hold(1));
+  document.addEventListener('mouseup', release);
 })();
 </script>
 
