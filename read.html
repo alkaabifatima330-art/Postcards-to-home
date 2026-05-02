@@ -55,7 +55,7 @@
       --font-writing-ar:'Massira','Kalam',cursive;
     }
     * { box-sizing:border-box; margin:0; padding:0; }
-    body { font-family:var(--font-ui); background:var(--parchment); color:var(--deep-brown); min-height:100vh; overflow-x:hidden; }
+    body { font-family:var(--font-ui); background:var(--parchment); color:var(--deep-brown); min-height:100vh; overflow-x:hidden; overflow-y:auto; }
     body::before {
       content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
       background:
@@ -175,6 +175,11 @@
       display:grid;
       grid-template-columns:repeat(2, 1fr);
       gap:1.5rem;
+    }
+    .page-wrap {
+      min-height:100vh;
+      overflow-y:auto;
+      -webkit-overflow-scrolling:touch;
     }
 
     /* Scene — postcard 3:2 ratio */
@@ -419,7 +424,7 @@
     .pc-modal-close:hover { transform:scale(1.1); background:#000; }
 
     @media(max-width:520px) {
-      .letters-grid { grid-template-columns:1fr; }
+      .letters-grid { grid-template-columns:repeat(2,1fr); }
       .card-right-col { width:110px; min-width:105px; }
       .dropdowns-row { flex-direction:column; }
       .filter-select { min-width:100%; width:100%; }
@@ -441,8 +446,8 @@
       /* Shrink logo */
       .hero-logo-img { height:150px; }
 
-      /* Single column grid — full width cards */
-      .letters-grid { grid-template-columns:1fr; gap:1.2rem; }
+      /* Two column grid */
+      .letters-grid { grid-template-columns:repeat(2,1fr); gap:1.2rem; }
 
       /* Cards — postcard 3:2 ratio, full width */
       .card-scene { aspect-ratio:3/2; }
@@ -478,6 +483,7 @@
 </head>
 <body>
 
+<div class="page-wrap">
 <div class="page">
 
 
@@ -536,6 +542,7 @@
   <!-- Grid -->
   <div class="letters-grid" id="letters-grid"></div>
 
+</div>
 </div>
 
 <!-- Modal -->
